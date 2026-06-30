@@ -1,0 +1,138 @@
+[
+  {
+    "sku": "VTX",
+    "nombre_es": "Mochila Vortex",
+    "categoria": "Mochilas",
+    "precio_mxn": 1290,
+    "descripcion_es": "Mochila urbana de 28L con compartimento acolchado para laptop de 16\", tela resistente al agua, puerto de carga USB y correas ergonómicas.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/vtx/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "VTX-BLK", "color": "negro", "talla": null, "stock": 14, "precio_mxn": null,
+        "foto_url": ["https://cdn.tienda-vortex.mx/vtx/negro-1.jpg", "https://cdn.tienda-vortex.mx/vtx/negro-2.jpg"] },
+      { "sku": "VTX-AZL", "color": "azul", "talla": null, "stock": 6, "precio_mxn": null, "foto_url": [] },
+      { "sku": "VTX-GRY", "color": "gris", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "SDA",
+    "nombre_es": "Sudadera Andes",
+    "categoria": "Ropa",
+    "precio_mxn": 749,
+    "descripcion_es": "Sudadera con capucha de felpa interior, corte regular unisex, bolsillo canguro y cordón ajustable.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/sda/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "SDA-NGR-S", "color": "negro", "talla": "S", "stock": 8,  "precio_mxn": null, "foto_url": [] },
+      { "sku": "SDA-NGR-M", "color": "negro", "talla": "M", "stock": 12, "precio_mxn": null, "foto_url": [] },
+      { "sku": "SDA-NGR-L", "color": "negro", "talla": "L", "stock": 3,  "precio_mxn": null, "foto_url": [] },
+      { "sku": "SDA-VRD-M", "color": "verde", "talla": "M", "stock": 0,  "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "TRA",
+    "nombre_es": "Tenis Rauda",
+    "categoria": "Calzado",
+    "precio_mxn": 1490,
+    "descripcion_es": "Tenis para correr con suela de EVA, malla transpirable y plantilla de retorno de energía. Peso ligero.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/tra/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "TRA-BLK-26", "color": "negro",  "talla": "26", "stock": 5, "precio_mxn": null, "foto_url": [] },
+      { "sku": "TRA-BLK-27", "color": "negro",  "talla": "27", "stock": 7, "precio_mxn": null, "foto_url": [] },
+      { "sku": "TRA-WHT-27", "color": "blanco", "talla": "27", "stock": 2, "precio_mxn": null, "foto_url": [] },
+      { "sku": "TRA-WHT-28", "color": "blanco", "talla": "28", "stock": 0, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "SON",
+    "nombre_es": "Audífonos SonoPro",
+    "categoria": "Electrónica",
+    "precio_mxn": 2390,
+    "descripcion_es": "Audífonos inalámbricos over-ear con cancelación activa de ruido, 30 h de batería y Bluetooth 5.3.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/son/front.jpg"],
+    "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
+    "variantes": [
+      { "sku": "SON-BLK", "color": "negro",  "talla": null, "stock": 9, "precio_mxn": null, "foto_url": [] },
+      { "sku": "SON-WHT", "color": "blanco", "talla": null, "stock": 4, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "GRA",
+    "nombre_es": "Gorra Cumbre",
+    "categoria": "Accesorios",
+    "precio_mxn": 349,
+    "descripcion_es": "Gorra ajustable de algodón con logo bordado y cierre trasero metálico.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/gra/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "GRA-BLK", "color": "negro",  "talla": null, "stock": 20, "precio_mxn": null, "foto_url": [] },
+      { "sku": "GRA-BEI", "color": "beige",  "talla": null, "stock": 11, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "BOT",
+    "nombre_es": "Botella Hidra 1L",
+    "categoria": "Accesorios",
+    "precio_mxn": 299,
+    "descripcion_es": "Botella térmica de acero inoxidable de 1L, mantiene frío 24h y caliente 12h. Libre de BPA.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/bot/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "BOT-STL", "color": "acero", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] },
+      { "sku": "BOT-NGR", "color": "negro", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "CIN",
+    "nombre_es": "Cinturón Nomad",
+    "categoria": "Accesorios",
+    "precio_mxn": 459,
+    "descripcion_es": "Cinturón de piel genuina con hebilla metálica cepillada, ancho de 3.5 cm.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/cin/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "CIN-CAF-90", "color": "café",  "talla": "90", "stock": 6, "precio_mxn": null, "foto_url": [] },
+      { "sku": "CIN-NGR-95", "color": "negro", "talla": "95", "stock": 4, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "PLA",
+    "nombre_es": "Playera Base",
+    "categoria": "Ropa",
+    "precio_mxn": 299,
+    "descripcion_es": "Playera de algodón peinado, cuello redondo, corte clásico. Prelavada anti-encogimiento.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/pla/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "PLA-BLK-M", "color": "negro",  "talla": "M", "stock": 25, "precio_mxn": null, "foto_url": [] },
+      { "sku": "PLA-BLK-L", "color": "negro",  "talla": "L", "stock": 18, "precio_mxn": null, "foto_url": [] },
+      { "sku": "PLA-WHT-M", "color": "blanco", "talla": "M", "stock": 14, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "CHA",
+    "nombre_es": "Chamarra Tormenta",
+    "categoria": "Ropa",
+    "precio_mxn": 1890,
+    "descripcion_es": "Chamarra impermeable con costuras selladas, capucha ajustable y ventilación bajo brazo. Ideal para lluvia.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/cha/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "CHA-NGR-M", "color": "negro", "talla": "M", "stock": 4, "precio_mxn": null, "foto_url": [] },
+      { "sku": "CHA-NGR-L", "color": "negro", "talla": "L", "stock": 2, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "LAP",
+    "nombre_es": "Funda Laptop Vortex 16\"",
+    "categoria": "Accesorios",
+    "precio_mxn": 549,
+    "descripcion_es": "Funda acolchada para laptop de 16\", forro de microfibra y cierre perimetral. Compatible con la Mochila Vortex.",
+    "foto_url": ["https://cdn.tienda-vortex.mx/lap/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "LAP-GRY", "color": "gris", "talla": null, "stock": 10, "precio_mxn": null, "foto_url": [] }
+    ]
+  }
+]

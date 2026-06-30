@@ -1,0 +1,83 @@
+[
+  {
+    "order_id": "10482",
+    "cliente": "Marcus P.",
+    "estado": "en_camino",
+    "items": [ { "sku": "VTX-BLK", "nombre_es": "Mochila Vortex (negro)", "qty": 1 } ],
+    "fecha_pedido": "2026-06-27",
+    "fecha_envio": "2026-06-28",
+    "entrega_estimada": "2026-06-30",
+    "fecha_entrega": null,
+    "guia": "TRACK-99213",
+    "total_mxn": 1389,
+    "ciudad_envio": "Guadalajara"
+  },
+  {
+    "order_id": "10488",
+    "cliente": "Ana López",
+    "estado": "entregado",
+    "items": [ { "sku": "TRA-BLK-27", "nombre_es": "Tenis Rauda (negro, 27)", "qty": 1 } ],
+    "fecha_pedido": "2026-06-16",
+    "fecha_envio": "2026-06-17",
+    "entrega_estimada": "2026-06-19",
+    "fecha_entrega": "2026-06-20",
+    "guia": "TRACK-88120",
+    "total_mxn": 1589,
+    "ciudad_envio": "Ciudad de México"
+  },
+  {
+    "order_id": "10495",
+    "cliente": "Luis Marín",
+    "estado": "entregado",
+    "items": [ { "sku": "SON-BLK", "nombre_es": "Audífonos SonoPro (negro)", "qty": 1 } ],
+    "fecha_pedido": "2026-06-20",
+    "fecha_envio": "2026-06-21",
+    "entrega_estimada": "2026-06-23",
+    "fecha_entrega": "2026-06-22",
+    "guia": "TRACK-90233",
+    "total_mxn": 2489,
+    "ciudad_envio": "Monterrey"
+  },
+  {
+    "order_id": "10310",
+    "cliente": "Sofía Cruz",
+    "estado": "entregado",
+    "items": [
+      { "sku": "SDA-NGR-M", "nombre_es": "Sudadera Andes (negro, M)", "qty": 1 },
+      { "sku": "GRA-BLK", "nombre_es": "Gorra Cumbre (negro)", "qty": 1 }
+    ],
+    "fecha_pedido": "2026-05-06",
+    "fecha_envio": "2026-05-07",
+    "entrega_estimada": "2026-05-09",
+    "fecha_entrega": "2026-05-10",
+    "guia": "TRACK-77001",
+    "total_mxn": 1098,
+    "ciudad_envio": "Puebla"
+  },
+  {
+    "order_id": "10500",
+    "cliente": "Diego Ramos",
+    "estado": "pagado",
+    "items": [ { "sku": "GRA-BLK", "nombre_es": "Gorra Cumbre (negro)", "qty": 2 } ],
+    "fecha_pedido": "2026-06-29",
+    "fecha_envio": null,
+    "entrega_estimada": null,
+    "fecha_entrega": null,
+    "guia": null,
+    "total_mxn": 698,
+    "ciudad_envio": "Guadalajara"
+  },
+  {
+    "order_id": "10455",
+    "cliente": "Valeria Soto",
+    "estado": "cancelado",
+    "items": [ { "sku": "CHA-NGR-M", "nombre_es": "Chamarra Tormenta (negro, M)", "qty": 1 } ],
+    "fecha_pedido": "2026-06-10",
+    "fecha_envio": null,
+    "entrega_estimada": null,
+    "fecha_entrega": null,
+    "guia": null,
+    "total_mxn": 1890,
+    "ciudad_envio": "Mérida"
+  }
+]

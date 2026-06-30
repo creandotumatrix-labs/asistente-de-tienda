@@ -1,0 +1,33 @@
+[package]
+name = "asistente-de-tienda"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+description = "WhatsApp ecommerce/retail support + sales agent (es-MX), grounded on a real catalog — zero hallucination by construction."
+license = "MIT"
+authors = ["Marcus Patman"]
+
+[[bin]]
+name = "tienda"
+path = "src/main.rs"
+
+[lib]
+name = "asistente_de_tienda"
+path = "src/lib.rs"
+
+[dependencies]
+# HTTP to the Anthropic Messages API. Blocking client, rustls TLS (no OpenSSL system dep).
+ureq = { version = "2.10", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1"
+dotenvy = "0.15"
+
+[dev-dependencies]
+# tests rely only on the std-typed tool layer; no network.
+
+[profile.release]
+lto = "thin"
+strip = true
