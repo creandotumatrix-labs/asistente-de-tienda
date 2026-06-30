@@ -11,6 +11,12 @@ authors = ["Marcus Patman"]
 name = "tienda"
 path = "src/main.rs"
 
+# HTTP service entrypoint for container/Railway deploys (root path so it deploys
+# cleanly; mirrors src/bin/server.rs).
+[[bin]]
+name = "server"
+path = "server.rs"
+
 [lib]
 name = "asistente_de_tienda"
 path = "src/lib.rs"
@@ -24,10 +30,13 @@ toml = "0.8"
 clap = { version = "4.5", features = ["derive"] }
 anyhow = "1"
 dotenvy = "0.15"
+# Lightweight blocking HTTP server for the `server` bin (matches the sync agent loop).
+tiny_http = "0.12"
 
 [dev-dependencies]
 # tests rely only on the std-typed tool layer; no network.
 
 [profile.release]
-lto = "thin"
-strip = true
+# opt-level 2 keeps cloud (Railway/Docker) build times reasonable.
+# Raise to 3 + lto = "thin" for size/perf-optimized artifacts.
+opt-level = 2
