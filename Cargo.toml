@@ -32,6 +32,8 @@ anyhow = "1"
 dotenvy = "0.15"
 # Lightweight blocking HTTP server for the `server` bin (matches the sync agent loop).
 tiny_http = "0.12"
+# Sync Postgres client — best-effort chat persistence for the `server` bin.
+postgres = "0.19"
 
 [dev-dependencies]
 # tests rely only on the std-typed tool layer; no network.

@@ -2,15 +2,18 @@
 //! Synchronous (tiny_http) to match the blocking agent loop — no async runtime.
 //!
 //! Endpoints:
-//!   GET  /health  -> 200 liveness + config status (stays healthy even with no API key)
-//!   GET  /        -> info page + a minimal WhatsApp-style chat box
-//!   POST /chat    -> { "mensaje": "..." } -> drives the agent, returns { reply, trace }
+//!   GET  /health   -> 200 liveness + config/db status (always healthy)
+//!   GET  /         -> info page + a minimal WhatsApp-style chat box
+//!   GET  /history  -> last chat turns persisted in Postgres
+//!   POST /chat     -> { "mensaje": "..." } -> drives the agent, returns { reply, trace }
+//!                     and best-effort logs the turn to Postgres
 //!
-//! Env: PORT (Railway-provided), ANTHROPIC_API_KEY (required for /chat),
-//!      ANTHROPIC_MODEL (optional), DATABASE_URL (surfaced in /health; Postgres reserved
-//!      for order/RMA persistence in a later increment).
+//! Env: PORT (Railway), ANTHROPIC_API_KEY (required for /chat), ANTHROPIC_MODEL (optional),
+//!      DATABASE_URL / DATABASE_PRIVATE_URL (Postgres; connection is best-effort so a DB
+//!      hiccup never takes the service down).
 
 use std::io::Read;
+use std::time::Duration;
 
 use serde_json::{json, Value};
 use tiny_http::{Header, Method, Request, Response, Server};
@@ -39,13 +42,19 @@ fn main() {
     let state = AppState::new(config, catalog);
     let n_tools = tools::enabled_tools(&state).len();
 
+    // Best-effort Postgres connection (bounded so a bad URL can't hang boot).
+    let mut db = connect_db();
+
     let port = std::env::var("PORT")
         .ok()
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(8080);
     let addr = format!("0.0.0.0:{port}");
     let server = Server::http(&addr).unwrap_or_else(|e| fatal(&format!("bind {addr}: {e}")));
-    eprintln!("asistente-de-tienda escuchando en {addr} · modelo {model} · {n_tools} herramientas");
+    eprintln!(
+        "asistente-de-tienda escuchando en {addr} · modelo {model} · {n_tools} herramientas · db={}",
+        db.is_some()
+    );
 
     for req in server.incoming_requests() {
         let method = req.method().clone();
@@ -59,7 +68,9 @@ fn main() {
                     "model": model,
                     "tools": n_tools,
                     "anthropic_key": std::env::var("ANTHROPIC_API_KEY").is_ok(),
-                    "database_url": std::env::var("DATABASE_URL").is_ok(),
+                    "database_url": std::env::var("DATABASE_URL").is_ok()
+                        || std::env::var("DATABASE_PRIVATE_URL").is_ok(),
+                    "db_connected": db.is_some(),
                 });
                 respond_json(req, 200, &body.to_string());
             }
@@ -69,13 +80,105 @@ fn main() {
                         .with_header(header("Content-Type", "text/html; charset=utf-8")),
                 );
             }
-            (Method::Post, "/chat") => handle_chat(&state, &model, max_tokens, req),
+            (Method::Get, "/history") => handle_history(&mut db, req),
+            (Method::Post, "/chat") => handle_chat(&state, &model, max_tokens, &mut db, req),
             _ => respond_json(req, 404, &json!({ "error": "no encontrado" }).to_string()),
         }
     }
 }
 
-fn handle_chat(state: &AppState, model: &str, max_tokens: u32, mut req: Request) {
+// ── Postgres (sync, best-effort) ────────────────────────────────────────────
+
+fn connect_db() -> Option<postgres::Client> {
+    let url = std::env::var("DATABASE_PRIVATE_URL")
+        .or_else(|_| std::env::var("DATABASE_URL"))
+        .ok()?;
+    let mut cfg: postgres::Config = match url.parse() {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("db: URL inválida: {e}");
+            return None;
+        }
+    };
+    cfg.connect_timeout(Duration::from_secs(5));
+    match cfg.connect(postgres::NoTls) {
+        Ok(mut c) => match c.batch_execute(
+            "CREATE TABLE IF NOT EXISTS chat_log (\
+                 id BIGSERIAL PRIMARY KEY, \
+                 ts TIMESTAMPTZ NOT NULL DEFAULT now(), \
+                 mensaje TEXT NOT NULL, \
+                 reply TEXT NOT NULL, \
+                 tools TEXT)",
+        ) {
+            Ok(()) => {
+                eprintln!("db: conectado + migrado (chat_log)");
+                Some(c)
+            }
+            Err(e) => {
+                eprintln!("db: migración falló: {e}");
+                None
+            }
+        },
+        Err(e) => {
+            eprintln!("db: conexión falló (continuo sin persistencia): {e}");
+            None
+        }
+    }
+}
+
+fn log_turn(db: &mut Option<postgres::Client>, mensaje: &str, reply: &str, tools: &str) {
+    if let Some(c) = db.as_mut() {
+        if let Err(e) = c.execute(
+            "INSERT INTO chat_log (mensaje, reply, tools) VALUES ($1, $2, $3)",
+            &[&mensaje, &reply, &tools],
+        ) {
+            eprintln!("db: insert falló: {e}");
+        }
+    }
+}
+
+fn handle_history(db: &mut Option<postgres::Client>, req: Request) {
+    let client = match db.as_mut() {
+        Some(c) => c,
+        None => return respond_json(req, 200, &json!({ "db": false, "items": [] }).to_string()),
+    };
+    match client.query(
+        "SELECT mensaje, reply, COALESCE(tools,'') AS tools, \
+         to_char(ts,'YYYY-MM-DD HH24:MI:SS') AS ts \
+         FROM chat_log ORDER BY id DESC LIMIT 25",
+        &[],
+    ) {
+        Ok(rows) => {
+            let items: Vec<Value> = rows
+                .iter()
+                .map(|r| {
+                    json!({
+                        "mensaje": r.get::<_, String>("mensaje"),
+                        "reply": r.get::<_, String>("reply"),
+                        "tools": r.get::<_, String>("tools"),
+                        "ts": r.get::<_, String>("ts"),
+                    })
+                })
+                .collect();
+            respond_json(
+                req,
+                200,
+                &json!({ "db": true, "count": items.len(), "items": items }).to_string(),
+            );
+        }
+        Err(e) => respond_json(req, 500, &json!({ "error": format!("{e}") }).to_string()),
+    }
+}
+
+// ── Chat ────────────────────────────────────────────────────────────────────
+
+fn handle_chat(
+    state: &AppState,
+    model: &str,
+    max_tokens: u32,
+    db: &mut Option<postgres::Client>,
+    mut req: Request,
+) {
     let mut body = String::new();
     if req.as_reader().read_to_string(&mut body).is_err() {
         return respond_json(req, 400, &json!({ "error": "cuerpo ilegible" }).to_string());
@@ -102,20 +205,21 @@ fn handle_chat(state: &AppState, model: &str, max_tokens: u32, mut req: Request)
     let mut agent = Agent::new(state, client, model.to_string(), max_tokens);
     match agent.send(&mensaje) {
         Ok(turn) => {
+            let tools_used: Vec<&str> = turn.trace.iter().map(|t| t.name.as_str()).collect();
             let trace: Vec<Value> = turn
                 .trace
                 .iter()
                 .map(|t| json!({ "tool": t.name, "input": t.input, "output": t.output }))
                 .collect();
-            respond_json(
-                req,
-                200,
-                &json!({ "reply": turn.reply, "trace": trace }).to_string(),
-            );
+            let body = json!({ "reply": turn.reply, "trace": trace }).to_string();
+            log_turn(db, &mensaje, &turn.reply, &tools_used.join(","));
+            respond_json(req, 200, &body);
         }
         Err(e) => respond_json(req, 502, &json!({ "error": format!("{e:#}") }).to_string()),
     }
 }
+
+// ── helpers ─────────────────────────────────────────────────────────────────
 
 fn header(k: &str, v: &str) -> Header {
     Header::from_bytes(k.as_bytes(), v.as_bytes()).expect("cabecera válida")
@@ -147,7 +251,7 @@ form{display:flex;gap:8px;margin-top:12px} input{flex:1;font-size:1rem;padding:1
 button{font-size:1rem;padding:11px 16px;border-radius:8px;border:0;background:#00a884;color:#fff;cursor:pointer}
 </style></head><body>
 <h1>🛍 __NOMBRE__ — Asistente (es-MX)</h1>
-<p>Demo. API: <code>GET /health</code> · <code>POST /chat</code> con <code>{"mensaje":"..."}</code></p>
+<p>Demo. API: <code>GET /health</code> · <code>GET /history</code> · <code>POST /chat</code> con <code>{"mensaje":"..."}</code></p>
 <div id="log"></div>
 <form id="f"><input id="m" placeholder="tienen la mochila Vortex en negro?" autocomplete="off" autofocus><button>Enviar</button></form>
 <script>
