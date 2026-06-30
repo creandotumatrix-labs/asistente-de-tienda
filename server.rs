@@ -13,8 +13,10 @@
 //!      hiccup never takes the service down).
 
 use std::io::Read;
+use std::path::Path;
 use std::time::Duration;
 
+use serde::Deserialize;
 use serde_json::{json, Value};
 use tiny_http::{Header, Method, Request, Response, Server};
 
@@ -22,20 +24,19 @@ use asistente_de_tienda::{
     agent::Agent,
     anthropic::Client,
     config::StoreConfig,
-    model::Catalog,
+    model::{Catalog, Product, Variant},
     tools::{self, AppState},
 };
 
 fn main() {
     let _ = dotenvy::dotenv();
 
-    let config = StoreConfig::load(std::path::Path::new("config/store.toml"))
+    let config = StoreConfig::load(Path::new("config/store.toml"))
         .unwrap_or_else(|e| fatal(&format!("config: {e:#}")));
-    let catalog = Catalog::load(
-        std::path::Path::new("data/products.json"),
-        std::path::Path::new("data/orders.json"),
-    )
-    .unwrap_or_else(|e| fatal(&format!("catalog: {e:#}")));
+
+    // Catalog comes from a real external product API (DummyJSON by default),
+    // mapped into the domain model. Falls back to seed JSON if unreachable.
+    let (catalog, catalog_source) = load_catalog();
 
     let model = std::env::var("ANTHROPIC_MODEL").unwrap_or_else(|_| config.agente.modelo.clone());
     let max_tokens = config.agente.max_tokens;
@@ -67,6 +68,9 @@ fn main() {
                     "service": state.config.tienda.nombre,
                     "model": model,
                     "tools": n_tools,
+                    "catalog_source": catalog_source,
+                    "products": state.catalog.productos.len(),
+                    "orders": state.catalog.pedidos.len(),
                     "anthropic_key": std::env::var("ANTHROPIC_API_KEY").is_ok(),
                     "database_url": std::env::var("DATABASE_URL").is_ok()
                         || std::env::var("DATABASE_PRIVATE_URL").is_ok(),
@@ -245,6 +249,120 @@ fn respond_json(req: Request, code: u16, body: &str) {
 fn fatal(msg: &str) -> ! {
     eprintln!("{msg}");
     std::process::exit(1);
+}
+
+// ── Real external catalog (DummyJSON → domain model) ────────────────────────
+
+#[derive(Deserialize)]
+struct DjResp {
+    products: Vec<DjProduct>,
+}
+
+#[derive(Deserialize)]
+struct DjProduct {
+    id: u64,
+    title: String,
+    #[serde(default)]
+    description: String,
+    #[serde(default)]
+    price: f64,
+    #[serde(default)]
+    stock: u32,
+    #[serde(default)]
+    category: String,
+    #[serde(default)]
+    sku: Option<String>,
+    #[serde(default)]
+    thumbnail: Option<String>,
+    #[serde(default)]
+    images: Vec<String>,
+}
+
+/// Default real-data source. Override with CATALOG_API_URL, or "seed" for bundled JSON.
+const DEFAULT_CATALOG_API: &str = "https://dummyjson.com/products?limit=100";
+/// Rough USD→MXN factor so API prices read like a Mexican storefront.
+const FX_USD_MXN: f64 = 17.5;
+
+/// Load the catalog from the external product API (mapped to domain types); fall
+/// back to seed JSON on any failure so the service always boots. Orders stay seed.
+fn load_catalog() -> (Catalog, String) {
+    let seed = || {
+        Catalog::load(Path::new("data/products.json"), Path::new("data/orders.json"))
+            .unwrap_or_else(|e| fatal(&format!("catalog seed: {e:#}")))
+    };
+    let url = std::env::var("CATALOG_API_URL").unwrap_or_else(|_| DEFAULT_CATALOG_API.to_string());
+    if url.eq_ignore_ascii_case("seed") || url.trim().is_empty() {
+        return (seed(), "seed".to_string());
+    }
+    match fetch_catalog_from_api(&url) {
+        Ok(productos) if !productos.is_empty() => {
+            let pedidos = Catalog::load(
+                Path::new("data/products.json"),
+                Path::new("data/orders.json"),
+            )
+            .map(|c| c.pedidos)
+            .unwrap_or_default();
+            eprintln!("catálogo: {} productos desde {url}", productos.len());
+            (Catalog { productos, pedidos }, format!("api:{url}"))
+        }
+        Ok(_) => {
+            eprintln!("catálogo API vacío; usando seed");
+            (seed(), "seed (api vacío)".to_string())
+        }
+        Err(e) => {
+            eprintln!("catálogo API falló ({e}); usando seed");
+            (seed(), "seed (api falló)".to_string())
+        }
+    }
+}
+
+fn fetch_catalog_from_api(url: &str) -> Result<Vec<Product>, String> {
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(5))
+        .timeout_read(Duration::from_secs(15))
+        .build();
+    let resp: DjResp = agent
+        .get(url)
+        .call()
+        .map_err(|e| format!("GET: {e}"))?
+        .into_json()
+        .map_err(|e| format!("parse: {e}"))?;
+
+    let productos = resp
+        .products
+        .into_iter()
+        .map(|p| {
+            let sku = p
+                .sku
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or_else(|| format!("DJ-{}", p.id));
+            let mut fotos = p.images;
+            if fotos.is_empty() {
+                if let Some(t) = p.thumbnail {
+                    fotos.push(t);
+                }
+            }
+            let precio = (p.price * FX_USD_MXN).round().max(1.0) as u32;
+            Product {
+                sku: sku.clone(),
+                nombre_es: p.title,
+                categoria: p.category,
+                precio_mxn: precio,
+                descripcion_es: p.description,
+                foto_url: fotos,
+                politica_devolucion: None,
+                variantes: vec![Variant {
+                    sku,
+                    color: "estándar".to_string(),
+                    talla: None,
+                    stock: p.stock,
+                    precio_mxn: None,
+                    foto_url: vec![],
+                }],
+            }
+        })
+        .collect();
+    Ok(productos)
 }
 
 fn index_html(nombre: &str) -> String {
