@@ -101,6 +101,8 @@ fn main() {
             }
             (Method::Get, "/history") => handle_history(&mut db, req),
             (Method::Post, "/chat") => handle_chat(&state, &model, max_tokens, &mut db, req),
+            // Real WhatsApp inbound (Twilio Sandbox): form-encoded in, TwiML out.
+            (Method::Post, "/whatsapp") => handle_whatsapp(&state, &model, max_tokens, &mut db, req),
             _ => respond_json(req, 404, &json!({ "error": "no encontrado" }).to_string()),
         }
     }
@@ -485,6 +487,126 @@ fn handle_chat(
             respond_json(req, 200, &resp_body);
         }
         Err(e) => respond_json(req, 502, &json!({ "error": format!("{e:#}") }).to_string()),
+    }
+}
+
+// ── WhatsApp (Twilio Sandbox: inbound form-encoded → TwiML reply) ───────────
+
+fn handle_whatsapp(
+    fallback: &AppState,
+    model: &str,
+    max_tokens: u32,
+    db: &mut Option<postgres::Client>,
+    mut req: Request,
+) {
+    let mut body = String::new();
+    let _ = req.as_reader().read_to_string(&mut body);
+    let mensaje = form_field(&body, "Body").unwrap_or_default();
+
+    let reply = if mensaje.trim().is_empty() {
+        "¡Hola! 👋 Soy el asistente de Tienda Vortex. Pregúntame por productos, envíos o tu pedido."
+            .to_string()
+    } else {
+        match Client::from_env() {
+            Ok(client) => {
+                let live = db
+                    .as_mut()
+                    .and_then(|c| load_catalog_db(c).ok())
+                    .filter(|c| !c.productos.is_empty())
+                    .map(|c| AppState::new(fallback.config.clone(), c));
+                let state: &AppState = live.as_ref().unwrap_or(fallback);
+                let mut agent = Agent::new(state, client, model.to_string(), max_tokens);
+                match agent.send(&mensaje) {
+                    Ok(turn) => {
+                        let tools = turn
+                            .trace
+                            .iter()
+                            .map(|t| t.name.as_str())
+                            .collect::<Vec<_>>()
+                            .join(",");
+                        log_turn(db, &mensaje, &turn.reply, &tools);
+                        turn.reply
+                    }
+                    Err(e) => format!("Lo siento, hubo un error: {e}"),
+                }
+            }
+            Err(_) => "El servidor no tiene configurada la API key todavía.".to_string(),
+        }
+    };
+
+    let twiml = format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response><Message>{}</Message></Response>",
+        xml_escape(&truncate(&reply, 1500))
+    );
+    let _ = req.respond(
+        Response::from_string(twiml).with_header(header("Content-Type", "text/xml; charset=utf-8")),
+    );
+}
+
+fn form_field(body: &str, name: &str) -> Option<String> {
+    for pair in body.split('&') {
+        let mut it = pair.splitn(2, '=');
+        if it.next() == Some(name) {
+            return Some(percent_decode(it.next().unwrap_or("")));
+        }
+    }
+    None
+}
+
+fn percent_decode(s: &str) -> String {
+    let bytes = s.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        match bytes[i] {
+            b'+' => {
+                out.push(b' ');
+                i += 1;
+            }
+            b'%' if i + 2 < bytes.len() => {
+                match (hex_val(bytes[i + 1]), hex_val(bytes[i + 2])) {
+                    (Some(h), Some(l)) => {
+                        out.push(h * 16 + l);
+                        i += 3;
+                    }
+                    _ => {
+                        out.push(bytes[i]);
+                        i += 1;
+                    }
+                }
+            }
+            b => {
+                out.push(b);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+fn hex_val(b: u8) -> Option<u8> {
+    match b {
+        b'0'..=b'9' => Some(b - b'0'),
+        b'a'..=b'f' => Some(b - b'a' + 10),
+        b'A'..=b'F' => Some(b - b'A' + 10),
+        _ => None,
+    }
+}
+
+fn xml_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&apos;")
+}
+
+fn truncate(s: &str, max: usize) -> String {
+    if s.chars().count() <= max {
+        s.to_string()
+    } else {
+        let t: String = s.chars().take(max.saturating_sub(1)).collect();
+        format!("{t}…")
     }
 }
 
