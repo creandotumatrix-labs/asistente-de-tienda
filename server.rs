@@ -183,12 +183,21 @@ fn handle_chat(
     if req.as_reader().read_to_string(&mut body).is_err() {
         return respond_json(req, 400, &json!({ "error": "cuerpo ilegible" }).to_string());
     }
-    let mensaje = serde_json::from_str::<Value>(&body)
-        .ok()
-        .and_then(|v| v.get("mensaje").and_then(Value::as_str).map(str::to_string));
-    let mensaje = match mensaje {
-        Some(m) if !m.trim().is_empty() => m,
+    let parsed: Value = serde_json::from_str(&body).unwrap_or(Value::Null);
+    let mensaje = match parsed.get("mensaje").and_then(Value::as_str) {
+        Some(m) if !m.trim().is_empty() => m.to_string(),
         _ => return respond_json(req, 400, &json!({ "error": "falta 'mensaje'" }).to_string()),
+    };
+    // Optional UI language ("en"/"es"): instruct the model per-turn, but log the
+    // original message so /history stays clean. Catalog data stays Spanish-grounded.
+    let lang = parsed.get("lang").and_then(Value::as_str).unwrap_or("es");
+    let prompt_msg = if lang.eq_ignore_ascii_case("en") {
+        format!(
+            "[Reply in English. The catalog is in Spanish — keep product names, prices, \
+             SKUs and tracking codes exactly as given.]\n\n{mensaje}"
+        )
+    } else {
+        mensaje.clone()
     };
 
     let client = match Client::from_env() {
@@ -203,7 +212,7 @@ fn handle_chat(
     };
 
     let mut agent = Agent::new(state, client, model.to_string(), max_tokens);
-    match agent.send(&mensaje) {
+    match agent.send(&prompt_msg) {
         Ok(turn) => {
             let tools_used: Vec<&str> = turn.trace.iter().map(|t| t.name.as_str()).collect();
             let trace: Vec<Value> = turn
@@ -239,26 +248,44 @@ fn fatal(msg: &str) -> ! {
 }
 
 fn index_html(nombre: &str) -> String {
-    const HTML: &str = r##"<!doctype html><html lang="es"><head><meta charset="utf-8">
+    const HTML: &str = r##"<!doctype html><html lang="es" id="html"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__NOMBRE__ · Asistente</title>
 <style>
-body{font-family:system-ui,-apple-system,sans-serif;max-width:640px;margin:32px auto;padding:0 16px;background:#0b141a;color:#e9edef}
-h1{font-size:1.2rem} code{background:#202c33;padding:2px 6px;border-radius:6px}
+body{font-family:system-ui,-apple-system,sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#0b141a;color:#e9edef}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:1.15rem;margin:.4rem 0}
+.sub{color:#8696a0;margin:.2rem 0 .6rem}
+.seg{display:inline-flex;border:1px solid #2a3942;border-radius:999px;overflow:hidden}
+.seg button{background:transparent;color:#8696a0;border:0;padding:6px 13px;font-size:.85rem;cursor:pointer}
+.seg button.on{background:#00a884;color:#fff}
 #log .b{background:#202c33;border-radius:10px;padding:9px 13px;margin:7px 0;white-space:pre-wrap;display:inline-block;max-width:85%}
 #log .me{text-align:right} #log .me .b{background:#005c4b}
 form{display:flex;gap:8px;margin-top:12px} input{flex:1;font-size:1rem;padding:11px;border-radius:8px;border:0}
-button{font-size:1rem;padding:11px 16px;border-radius:8px;border:0;background:#00a884;color:#fff;cursor:pointer}
+button.send{font-size:1rem;padding:11px 16px;border-radius:8px;border:0;background:#00a884;color:#fff;cursor:pointer}
 </style></head><body>
-<h1>🛍 __NOMBRE__ — Asistente (es-MX)</h1>
-<p>Demo. API: <code>GET /health</code> · <code>GET /history</code> · <code>POST /chat</code> con <code>{"mensaje":"..."}</code></p>
+<header>
+  <h1>🛍 __NOMBRE__</h1>
+  <div class="seg"><button id="bes" class="on">ES</button><button id="ben">EN</button></div>
+</header>
+<p class="sub" id="sub"></p>
 <div id="log"></div>
-<form id="f"><input id="m" placeholder="tienen la mochila Vortex en negro?" autocomplete="off" autofocus><button>Enviar</button></form>
+<form id="f"><input id="m" autocomplete="off" autofocus><button class="send" id="send" type="submit"></button></form>
 <script>
-const log=document.getElementById('log'),f=document.getElementById('f'),m=document.getElementById('m');
+const I18N={
+  es:{lang:'es',sub:'Asistente de la tienda. Pregunta por productos, envíos o tu pedido.',ph:'tienen la mochila Vortex en negro?',send:'Enviar',wait:'…',none:'(sin respuesta)'},
+  en:{lang:'en',sub:'Store assistant. Ask about products, shipping or your order.',ph:'do you have the Vortex backpack in black?',send:'Send',wait:'…',none:'(no reply)'}
+};
+const $=id=>document.getElementById(id);
+let lang=localStorage.getItem('lang')||'es';
+function apply(){const t=I18N[lang];$('html').lang=t.lang;$('sub').textContent=t.sub;$('m').placeholder=t.ph;$('send').textContent=t.send;$('bes').classList.toggle('on',lang==='es');$('ben').classList.toggle('on',lang==='en');}
+$('bes').onclick=()=>{lang='es';localStorage.setItem('lang',lang);apply();$('m').focus();};
+$('ben').onclick=()=>{lang='en';localStorage.setItem('lang',lang);apply();$('m').focus();};
+apply();
+const log=$('log');
 function add(t,who){const d=document.createElement('div');d.className=who;const b=document.createElement('div');b.className='b';b.textContent=t;d.appendChild(b);log.appendChild(d);window.scrollTo(0,9e9);return b;}
-f.onsubmit=async e=>{e.preventDefault();const t=m.value.trim();if(!t)return;add(t,'me');m.value='';const b=add('…','bot');
-try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:t})});const j=await r.json();b.textContent=j.reply||j.error||'(sin respuesta)';}
+$('f').onsubmit=async e=>{e.preventDefault();const t=$('m').value.trim();if(!t)return;add(t,'me');$('m').value='';const b=add(I18N[lang].wait,'bot');
+try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:t,lang:lang})});const j=await r.json();b.textContent=j.reply||j.error||I18N[lang].none;}
 catch(err){b.textContent='error: '+err;}};
 </script></body></html>"##;
     HTML.replace("__NOMBRE__", nombre)
