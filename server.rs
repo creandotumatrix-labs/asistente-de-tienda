@@ -1,16 +1,16 @@
 //! HTTP service wrapper around the grounded agent, for container/Railway deploys.
 //! Synchronous (tiny_http) to match the blocking agent loop — no async runtime.
 //!
-//! Endpoints:
-//!   GET  /health   -> 200 liveness + config/db status (always healthy)
-//!   GET  /         -> info page + a minimal WhatsApp-style chat box
-//!   GET  /history  -> last chat turns persisted in Postgres
-//!   POST /chat     -> { "mensaje": "..." } -> drives the agent, returns { reply, trace }
-//!                     and best-effort logs the turn to Postgres
+//! Data lives in **Postgres** (products / orders / order_items), seeded once from a
+//! real external product API. Every /chat loads the catalog + orders live from the DB
+//! (real queries per request). Seed JSON is only a last-resort fallback if the DB is
+//! unreachable, so the service always boots.
 //!
-//! Env: PORT (Railway), ANTHROPIC_API_KEY (required for /chat), ANTHROPIC_MODEL (optional),
-//!      DATABASE_URL / DATABASE_PRIVATE_URL (Postgres; connection is best-effort so a DB
-//!      hiccup never takes the service down).
+//! Endpoints:
+//!   GET  /health   -> liveness + catalog source/counts + db status
+//!   GET  /         -> bilingual (ES/EN) WhatsApp-style chat UI
+//!   GET  /history  -> last chat turns persisted in Postgres
+//!   POST /chat     -> { "mensaje": "...", "lang": "es"|"en" } -> drives the agent
 
 use std::io::Read;
 use std::path::Path;
@@ -24,7 +24,7 @@ use asistente_de_tienda::{
     agent::Agent,
     anthropic::Client,
     config::StoreConfig,
-    model::{Catalog, Product, Variant},
+    model::{Catalog, EstadoPedido, Order, OrderItem, Product, Variant},
     tools::{self, AppState},
 };
 
@@ -33,18 +33,31 @@ fn main() {
 
     let config = StoreConfig::load(Path::new("config/store.toml"))
         .unwrap_or_else(|e| fatal(&format!("config: {e:#}")));
-
-    // Catalog comes from a real external product API (DummyJSON by default),
-    // mapped into the domain model. Falls back to seed JSON if unreachable.
-    let (catalog, catalog_source) = load_catalog();
-
     let model = std::env::var("ANTHROPIC_MODEL").unwrap_or_else(|_| config.agente.modelo.clone());
     let max_tokens = config.agente.max_tokens;
-    let state = AppState::new(config, catalog);
-    let n_tools = tools::enabled_tools(&state).len();
 
-    // Best-effort Postgres connection (bounded so a bad URL can't hang boot).
     let mut db = connect_db();
+
+    // Source of truth = Postgres. Migrate + (first-boot) seed from the product API,
+    // then load the catalog from the DB. Fall back to API/seed JSON only if the DB
+    // is unreachable so the service still boots.
+    let (boot_catalog, catalog_source) = match db.as_mut() {
+        Some(c) => match migrate_and_seed(c).and_then(|_| load_catalog_db(c)) {
+            Ok(cat) if !cat.productos.is_empty() => (cat, "postgres".to_string()),
+            Ok(_) => {
+                eprintln!("db catálogo vacío; usando API/seed");
+                (load_catalog().0, "api/seed (db vacío)".to_string())
+            }
+            Err(e) => {
+                eprintln!("db catálogo falló ({e}); usando API/seed");
+                (load_catalog().0, "api/seed (db error)".to_string())
+            }
+        },
+        None => (load_catalog().0, "api/seed (sin db)".to_string()),
+    };
+
+    let state = AppState::new(config, boot_catalog);
+    let n_tools = tools::enabled_tools(&state).len();
 
     let port = std::env::var("PORT")
         .ok()
@@ -53,7 +66,9 @@ fn main() {
     let addr = format!("0.0.0.0:{port}");
     let server = Server::http(&addr).unwrap_or_else(|e| fatal(&format!("bind {addr}: {e}")));
     eprintln!(
-        "asistente-de-tienda escuchando en {addr} · modelo {model} · {n_tools} herramientas · db={}",
+        "asistente-de-tienda :{port} · modelo {model} · {n_tools} tools · catálogo {} ({} productos) · db={}",
+        catalog_source,
+        state.catalog.productos.len(),
         db.is_some()
     );
 
@@ -91,7 +106,7 @@ fn main() {
     }
 }
 
-// ── Postgres (sync, best-effort) ────────────────────────────────────────────
+// ── Postgres connection ─────────────────────────────────────────────────────
 
 fn connect_db() -> Option<postgres::Client> {
     let url = std::env::var("DATABASE_PRIVATE_URL")
@@ -106,23 +121,10 @@ fn connect_db() -> Option<postgres::Client> {
     };
     cfg.connect_timeout(Duration::from_secs(5));
     match cfg.connect(postgres::NoTls) {
-        Ok(mut c) => match c.batch_execute(
-            "CREATE TABLE IF NOT EXISTS chat_log (\
-                 id BIGSERIAL PRIMARY KEY, \
-                 ts TIMESTAMPTZ NOT NULL DEFAULT now(), \
-                 mensaje TEXT NOT NULL, \
-                 reply TEXT NOT NULL, \
-                 tools TEXT)",
-        ) {
-            Ok(()) => {
-                eprintln!("db: conectado + migrado (chat_log)");
-                Some(c)
-            }
-            Err(e) => {
-                eprintln!("db: migración falló: {e}");
-                None
-            }
-        },
+        Ok(c) => {
+            eprintln!("db: conectado");
+            Some(c)
+        }
         Err(e) => {
             eprintln!("db: conexión falló (continuo sin persistencia): {e}");
             None
@@ -130,13 +132,261 @@ fn connect_db() -> Option<postgres::Client> {
     }
 }
 
+// ── Schema + seed (Postgres is the source of truth) ─────────────────────────
+
+fn migrate_and_seed(c: &mut postgres::Client) -> Result<(), String> {
+    c.batch_execute(
+        "CREATE TABLE IF NOT EXISTS products (\
+            sku TEXT PRIMARY KEY, nombre TEXT NOT NULL, categoria TEXT NOT NULL, \
+            precio_mxn INTEGER NOT NULL, descripcion TEXT NOT NULL DEFAULT '', \
+            stock INTEGER NOT NULL DEFAULT 0, color TEXT NOT NULL DEFAULT 'estándar', \
+            talla TEXT, foto_url TEXT);\
+         CREATE TABLE IF NOT EXISTS orders (\
+            order_id TEXT PRIMARY KEY, cliente TEXT NOT NULL, estado TEXT NOT NULL, \
+            fecha_pedido TEXT NOT NULL, fecha_envio TEXT, entrega_estimada TEXT, \
+            fecha_entrega TEXT, guia TEXT, total_mxn INTEGER NOT NULL, ciudad_envio TEXT NOT NULL);\
+         CREATE TABLE IF NOT EXISTS order_items (\
+            id BIGSERIAL PRIMARY KEY, order_id TEXT NOT NULL, sku TEXT NOT NULL, \
+            nombre TEXT NOT NULL, qty INTEGER NOT NULL);\
+         CREATE TABLE IF NOT EXISTS chat_log (\
+            id BIGSERIAL PRIMARY KEY, ts TIMESTAMPTZ NOT NULL DEFAULT now(), \
+            mensaje TEXT NOT NULL, reply TEXT NOT NULL, tools TEXT);",
+    )
+    .map_err(|e| format!("migrate: {e}"))?;
+
+    // Seed products from the real product API on first boot only.
+    let pcount: i64 = c
+        .query_one("SELECT count(*) FROM products", &[])
+        .map_err(|e| e.to_string())?
+        .get(0);
+    if pcount == 0 {
+        let productos = fetch_catalog_from_api(DEFAULT_CATALOG_API)?;
+        for p in &productos {
+            let v = &p.variantes[0];
+            let foto: Option<&str> = p.foto_url.first().map(String::as_str);
+            let talla: Option<&str> = v.talla.as_deref();
+            let precio = p.precio_mxn as i32;
+            let stock = v.stock as i32;
+            c.execute(
+                "INSERT INTO products (sku,nombre,categoria,precio_mxn,descripcion,stock,color,talla,foto_url) \
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (sku) DO NOTHING",
+                &[
+                    &p.sku, &p.nombre_es, &p.categoria, &precio, &p.descripcion_es, &stock,
+                    &v.color, &talla, &foto,
+                ],
+            )
+            .map_err(|e| format!("insert product: {e}"))?;
+        }
+        eprintln!("db: sembrados {} productos desde el API", productos.len());
+    }
+
+    // Seed a few sample orders on first boot (defined in code, not JSON).
+    let ocount: i64 = c
+        .query_one("SELECT count(*) FROM orders", &[])
+        .map_err(|e| e.to_string())?
+        .get(0);
+    if ocount == 0 {
+        c.batch_execute(
+            "INSERT INTO orders VALUES ('10482','Marcus P.','en_camino','2026-06-27','2026-06-28','2026-06-30',NULL,'TRACK-99213',35000,'Guadalajara') ON CONFLICT DO NOTHING;\
+             INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10482','DJ-MBP','Apple MacBook Pro 14 Inch Space Grey',1);\
+             INSERT INTO orders VALUES ('10488','Ana López','entregado','2026-06-16','2026-06-17','2026-06-19','2026-06-20','TRACK-88120',3500,'Ciudad de México') ON CONFLICT DO NOTHING;\
+             INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10488','DJ-NIKE','Nike Air Jordan 1 Red And Black',1);\
+             INSERT INTO orders VALUES ('10455','Valeria Soto','cancelado','2026-06-10',NULL,NULL,NULL,NULL,1890,'Mérida') ON CONFLICT DO NOTHING;\
+             INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10455','DJ-PRADA','Prada Women Bag',1);",
+        )
+        .map_err(|e| format!("seed orders: {e}"))?;
+        eprintln!("db: sembrados pedidos de ejemplo");
+    }
+    Ok(())
+}
+
+// ── Live catalog load from Postgres (real queries per request) ──────────────
+
+fn load_catalog_db(c: &mut postgres::Client) -> Result<Catalog, String> {
+    let prows = c
+        .query(
+            "SELECT sku,nombre,categoria,precio_mxn,descripcion,stock,color,talla,foto_url \
+             FROM products ORDER BY sku",
+            &[],
+        )
+        .map_err(|e| format!("query products: {e}"))?;
+    let productos = prows
+        .iter()
+        .map(|r| {
+            let sku: String = r.get("sku");
+            let foto: Option<String> = r.get("foto_url");
+            Product {
+                sku: sku.clone(),
+                nombre_es: r.get("nombre"),
+                categoria: r.get("categoria"),
+                precio_mxn: r.get::<_, i32>("precio_mxn") as u32,
+                descripcion_es: r.get("descripcion"),
+                foto_url: foto.clone().into_iter().collect(),
+                politica_devolucion: None,
+                variantes: vec![Variant {
+                    sku,
+                    color: r.get("color"),
+                    talla: r.get("talla"),
+                    stock: r.get::<_, i32>("stock") as u32,
+                    precio_mxn: None,
+                    foto_url: foto.into_iter().collect(),
+                }],
+            }
+        })
+        .collect();
+
+    let orows = c
+        .query(
+            "SELECT order_id,cliente,estado,fecha_pedido,fecha_envio,entrega_estimada,\
+             fecha_entrega,guia,total_mxn,ciudad_envio FROM orders ORDER BY order_id",
+            &[],
+        )
+        .map_err(|e| format!("query orders: {e}"))?;
+    let irows = c
+        .query("SELECT order_id,sku,nombre,qty FROM order_items", &[])
+        .map_err(|e| format!("query items: {e}"))?;
+    let pedidos = orows
+        .iter()
+        .map(|r| {
+            let oid: String = r.get("order_id");
+            let items = irows
+                .iter()
+                .filter(|ir| ir.get::<_, String>("order_id") == oid)
+                .map(|ir| OrderItem {
+                    sku: ir.get("sku"),
+                    nombre_es: ir.get("nombre"),
+                    qty: ir.get::<_, i32>("qty") as u32,
+                })
+                .collect();
+            let estado_s: String = r.get("estado");
+            let estado = serde_json::from_value::<EstadoPedido>(Value::String(estado_s))
+                .unwrap_or(EstadoPedido::Pendiente);
+            Order {
+                order_id: oid,
+                cliente: r.get("cliente"),
+                estado,
+                items,
+                fecha_pedido: r.get("fecha_pedido"),
+                fecha_envio: r.get("fecha_envio"),
+                entrega_estimada: r.get("entrega_estimada"),
+                fecha_entrega: r.get("fecha_entrega"),
+                guia: r.get("guia"),
+                total_mxn: r.get::<_, i32>("total_mxn") as u32,
+                ciudad_envio: r.get("ciudad_envio"),
+            }
+        })
+        .collect();
+
+    Ok(Catalog { productos, pedidos })
+}
+
+// ── External product API (DummyJSON → domain) — used to seed Postgres ───────
+
+#[derive(Deserialize)]
+struct DjResp {
+    products: Vec<DjProduct>,
+}
+
+#[derive(Deserialize)]
+struct DjProduct {
+    id: u64,
+    title: String,
+    #[serde(default)]
+    description: String,
+    #[serde(default)]
+    price: f64,
+    #[serde(default)]
+    stock: u32,
+    #[serde(default)]
+    category: String,
+    #[serde(default)]
+    sku: Option<String>,
+    #[serde(default)]
+    thumbnail: Option<String>,
+    #[serde(default)]
+    images: Vec<String>,
+}
+
+const DEFAULT_CATALOG_API: &str = "https://dummyjson.com/products?limit=100";
+const FX_USD_MXN: f64 = 17.5;
+
+fn fetch_catalog_from_api(url: &str) -> Result<Vec<Product>, String> {
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(5))
+        .timeout_read(Duration::from_secs(20))
+        .build();
+    let resp: DjResp = agent
+        .get(url)
+        .call()
+        .map_err(|e| format!("GET: {e}"))?
+        .into_json()
+        .map_err(|e| format!("parse: {e}"))?;
+
+    Ok(resp
+        .products
+        .into_iter()
+        .map(|p| {
+            let sku = p
+                .sku
+                .filter(|s| !s.trim().is_empty())
+                .unwrap_or_else(|| format!("DJ-{}", p.id));
+            let mut fotos = p.images;
+            if fotos.is_empty() {
+                if let Some(t) = p.thumbnail {
+                    fotos.push(t);
+                }
+            }
+            let precio = (p.price * FX_USD_MXN).round().max(1.0) as u32;
+            Product {
+                sku: sku.clone(),
+                nombre_es: p.title,
+                categoria: p.category,
+                precio_mxn: precio,
+                descripcion_es: p.description,
+                foto_url: fotos,
+                politica_devolucion: None,
+                variantes: vec![Variant {
+                    sku,
+                    color: "estándar".to_string(),
+                    talla: None,
+                    stock: p.stock,
+                    precio_mxn: None,
+                    foto_url: vec![],
+                }],
+            }
+        })
+        .collect())
+}
+
+/// Last-resort fallback when the DB is unreachable: API, else bundled seed JSON.
+fn load_catalog() -> (Catalog, String) {
+    let seed = || {
+        Catalog::load(Path::new("data/products.json"), Path::new("data/orders.json"))
+            .unwrap_or_else(|e| fatal(&format!("catalog seed: {e:#}")))
+    };
+    match fetch_catalog_from_api(DEFAULT_CATALOG_API) {
+        Ok(p) if !p.is_empty() => {
+            let pedidos = Catalog::load(
+                Path::new("data/products.json"),
+                Path::new("data/orders.json"),
+            )
+            .map(|c| c.pedidos)
+            .unwrap_or_default();
+            (Catalog { productos: p, pedidos }, "api".to_string())
+        }
+        _ => (seed(), "seed".to_string()),
+    }
+}
+
+// ── chat persistence ────────────────────────────────────────────────────────
+
 fn log_turn(db: &mut Option<postgres::Client>, mensaje: &str, reply: &str, tools: &str) {
     if let Some(c) = db.as_mut() {
         if let Err(e) = c.execute(
             "INSERT INTO chat_log (mensaje, reply, tools) VALUES ($1, $2, $3)",
             &[&mensaje, &reply, &tools],
         ) {
-            eprintln!("db: insert falló: {e}");
+            eprintln!("db: insert chat_log falló: {e}");
         }
     }
 }
@@ -174,10 +424,10 @@ fn handle_history(db: &mut Option<postgres::Client>, req: Request) {
     }
 }
 
-// ── Chat ────────────────────────────────────────────────────────────────────
+// ── Chat (loads catalog live from Postgres per request) ─────────────────────
 
 fn handle_chat(
-    state: &AppState,
+    fallback: &AppState,
     model: &str,
     max_tokens: u32,
     db: &mut Option<postgres::Client>,
@@ -192,8 +442,6 @@ fn handle_chat(
         Some(m) if !m.trim().is_empty() => m.to_string(),
         _ => return respond_json(req, 400, &json!({ "error": "falta 'mensaje'" }).to_string()),
     };
-    // Optional UI language ("en"/"es"): instruct the model per-turn, but log the
-    // original message so /history stays clean. Catalog data stays Spanish-grounded.
     let lang = parsed.get("lang").and_then(Value::as_str).unwrap_or("es");
     let prompt_msg = if lang.eq_ignore_ascii_case("en") {
         format!(
@@ -215,6 +463,14 @@ fn handle_chat(
         }
     };
 
+    // Real per-request data call to the backend: load catalog + orders from Postgres.
+    let live = db
+        .as_mut()
+        .and_then(|c| load_catalog_db(c).ok())
+        .filter(|cat| !cat.productos.is_empty())
+        .map(|cat| AppState::new(fallback.config.clone(), cat));
+    let state: &AppState = live.as_ref().unwrap_or(fallback);
+
     let mut agent = Agent::new(state, client, model.to_string(), max_tokens);
     match agent.send(&prompt_msg) {
         Ok(turn) => {
@@ -224,9 +480,9 @@ fn handle_chat(
                 .iter()
                 .map(|t| json!({ "tool": t.name, "input": t.input, "output": t.output }))
                 .collect();
-            let body = json!({ "reply": turn.reply, "trace": trace }).to_string();
+            let resp_body = json!({ "reply": turn.reply, "trace": trace }).to_string();
             log_turn(db, &mensaje, &turn.reply, &tools_used.join(","));
-            respond_json(req, 200, &body);
+            respond_json(req, 200, &resp_body);
         }
         Err(e) => respond_json(req, 502, &json!({ "error": format!("{e:#}") }).to_string()),
     }
@@ -249,120 +505,6 @@ fn respond_json(req: Request, code: u16, body: &str) {
 fn fatal(msg: &str) -> ! {
     eprintln!("{msg}");
     std::process::exit(1);
-}
-
-// ── Real external catalog (DummyJSON → domain model) ────────────────────────
-
-#[derive(Deserialize)]
-struct DjResp {
-    products: Vec<DjProduct>,
-}
-
-#[derive(Deserialize)]
-struct DjProduct {
-    id: u64,
-    title: String,
-    #[serde(default)]
-    description: String,
-    #[serde(default)]
-    price: f64,
-    #[serde(default)]
-    stock: u32,
-    #[serde(default)]
-    category: String,
-    #[serde(default)]
-    sku: Option<String>,
-    #[serde(default)]
-    thumbnail: Option<String>,
-    #[serde(default)]
-    images: Vec<String>,
-}
-
-/// Default real-data source. Override with CATALOG_API_URL, or "seed" for bundled JSON.
-const DEFAULT_CATALOG_API: &str = "https://dummyjson.com/products?limit=100";
-/// Rough USD→MXN factor so API prices read like a Mexican storefront.
-const FX_USD_MXN: f64 = 17.5;
-
-/// Load the catalog from the external product API (mapped to domain types); fall
-/// back to seed JSON on any failure so the service always boots. Orders stay seed.
-fn load_catalog() -> (Catalog, String) {
-    let seed = || {
-        Catalog::load(Path::new("data/products.json"), Path::new("data/orders.json"))
-            .unwrap_or_else(|e| fatal(&format!("catalog seed: {e:#}")))
-    };
-    let url = std::env::var("CATALOG_API_URL").unwrap_or_else(|_| DEFAULT_CATALOG_API.to_string());
-    if url.eq_ignore_ascii_case("seed") || url.trim().is_empty() {
-        return (seed(), "seed".to_string());
-    }
-    match fetch_catalog_from_api(&url) {
-        Ok(productos) if !productos.is_empty() => {
-            let pedidos = Catalog::load(
-                Path::new("data/products.json"),
-                Path::new("data/orders.json"),
-            )
-            .map(|c| c.pedidos)
-            .unwrap_or_default();
-            eprintln!("catálogo: {} productos desde {url}", productos.len());
-            (Catalog { productos, pedidos }, format!("api:{url}"))
-        }
-        Ok(_) => {
-            eprintln!("catálogo API vacío; usando seed");
-            (seed(), "seed (api vacío)".to_string())
-        }
-        Err(e) => {
-            eprintln!("catálogo API falló ({e}); usando seed");
-            (seed(), "seed (api falló)".to_string())
-        }
-    }
-}
-
-fn fetch_catalog_from_api(url: &str) -> Result<Vec<Product>, String> {
-    let agent = ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(5))
-        .timeout_read(Duration::from_secs(15))
-        .build();
-    let resp: DjResp = agent
-        .get(url)
-        .call()
-        .map_err(|e| format!("GET: {e}"))?
-        .into_json()
-        .map_err(|e| format!("parse: {e}"))?;
-
-    let productos = resp
-        .products
-        .into_iter()
-        .map(|p| {
-            let sku = p
-                .sku
-                .filter(|s| !s.trim().is_empty())
-                .unwrap_or_else(|| format!("DJ-{}", p.id));
-            let mut fotos = p.images;
-            if fotos.is_empty() {
-                if let Some(t) = p.thumbnail {
-                    fotos.push(t);
-                }
-            }
-            let precio = (p.price * FX_USD_MXN).round().max(1.0) as u32;
-            Product {
-                sku: sku.clone(),
-                nombre_es: p.title,
-                categoria: p.category,
-                precio_mxn: precio,
-                descripcion_es: p.description,
-                foto_url: fotos,
-                politica_devolucion: None,
-                variantes: vec![Variant {
-                    sku,
-                    color: "estándar".to_string(),
-                    talla: None,
-                    stock: p.stock,
-                    precio_mxn: None,
-                    foto_url: vec![],
-                }],
-            }
-        })
-        .collect();
-    Ok(productos)
 }
 
 fn index_html(nombre: &str) -> String {
@@ -391,8 +533,8 @@ button.send{font-size:1rem;padding:11px 16px;border-radius:8px;border:0;backgrou
 <form id="f"><input id="m" autocomplete="off" autofocus><button class="send" id="send" type="submit"></button></form>
 <script>
 const I18N={
-  es:{lang:'es',sub:'Asistente de la tienda. Pregunta por productos, envíos o tu pedido.',ph:'tienen la mochila Vortex en negro?',send:'Enviar',wait:'…',none:'(sin respuesta)'},
-  en:{lang:'en',sub:'Store assistant. Ask about products, shipping or your order.',ph:'do you have the Vortex backpack in black?',send:'Send',wait:'…',none:'(no reply)'}
+  es:{lang:'es',sub:'Asistente de la tienda. Pregunta por productos, envíos o tu pedido.',ph:'tienen laptops? a qué precio?',send:'Enviar',wait:'…',none:'(sin respuesta)'},
+  en:{lang:'en',sub:'Store assistant. Ask about products, shipping or your order.',ph:'do you have any laptops? what price?',send:'Send',wait:'…',none:'(no reply)'}
 };
 const $=id=>document.getElementById(id);
 let lang=localStorage.getItem('lang')||'es';
