@@ -1,0 +1,6 @@
+# Pin the toolchain so cloud builders (Railway/Railpack) use a Rust new enough
+# for edition-2024 transitive deps (e.g. clap_builder). Matches the version
+# verified in CI + Codespace.
+[toolchain]
+channel = "1.96.0"
+profile = "minimal"

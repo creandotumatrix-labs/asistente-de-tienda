@@ -2,7 +2,7 @@
 name = "asistente-de-tienda"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.74"
+rust-version = "1.85"
 description = "WhatsApp ecommerce/retail support + sales agent (es-MX), grounded on a real catalog — zero hallucination by construction."
 license = "MIT"
 authors = ["Marcus Patman"]
