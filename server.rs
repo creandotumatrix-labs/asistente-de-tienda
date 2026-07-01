@@ -426,6 +426,8 @@ struct ItunesItem {
     long_description: Option<String>,
     #[serde(rename = "description", default)]
     description: Option<String>,
+    #[serde(rename = "wrapperType", default)]
+    wrapper_type: Option<String>,
 }
 
 /// Build a real catalog from the Mexican Apple Store (prices already in MXN).
@@ -435,14 +437,14 @@ fn fetch_catalog_itunes() -> Result<Vec<Product>, String> {
         .timeout_read(Duration::from_secs(20))
         .build();
     let queries: [(&str, &str, &str); 8] = [
-        ("hits", "music", "Música"),
-        ("rock", "music", "Música"),
-        ("pop latino", "music", "Música"),
-        ("accion", "movie", "Películas"),
-        ("comedia", "movie", "Películas"),
-        ("juegos", "software", "Apps"),
-        ("fotografia", "software", "Apps"),
-        ("bestseller", "ebook", "Libros"),
+        ("top hits", "music", "Pop"),
+        ("rock", "music", "Rock"),
+        ("hip hop", "music", "Hip-Hop/Rap"),
+        ("regional mexicano", "music", "Regional Mexicano"),
+        ("pop latino", "music", "Pop Latino"),
+        ("electronica", "music", "Electrónica"),
+        ("jazz", "music", "Jazz"),
+        ("classical", "music", "Clásica"),
     ];
     let mut productos: Vec<Product> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
@@ -549,8 +551,9 @@ fn keywords(msg: &str) -> String {
     out.join(" ")
 }
 
-/// Live iTunes search for the user's terms so ANY real Apple product is findable
-/// (not just the pre-synced subset). Results are real, grounded, MXN-priced.
+/// Live Apple/iTunes MUSIC search for the user's terms — returns real songs AND
+/// albums (with cover art + native MXN prices) straight from Apple. This is the
+/// store's only source of product truth; nothing about a title is invented.
 fn fetch_itunes_query(term: &str) -> Vec<Product> {
     let mut out: Vec<Product> = Vec::new();
     if term.trim().is_empty() {
@@ -558,78 +561,91 @@ fn fetch_itunes_query(term: &str) -> Vec<Product> {
     }
     let agent = ureq::AgentBuilder::new()
         .timeout_connect(Duration::from_secs(4))
-        .timeout_read(Duration::from_secs(12))
+        .timeout_read(Duration::from_secs(14))
         .build();
     let q = term.split_whitespace().collect::<Vec<_>>().join("+");
-    let url = format!("https://itunes.apple.com/search?term={q}&country=MX&limit=18");
-    let resp: ItunesResp = match agent
-        .get(&url)
-        .call()
-        .map_err(|e| e.to_string())
-        .and_then(|r| r.into_json().map_err(|e| e.to_string()))
-    {
-        Ok(r) => r,
-        Err(_) => return out,
-    };
+    // Ask Apple explicitly for MUSIC: albums first, then songs (MX store => MXN).
+    let urls = [
+        format!("https://itunes.apple.com/search?term={q}&country=MX&media=music&entity=album&limit=12"),
+        format!("https://itunes.apple.com/search?term={q}&country=MX&media=music&entity=song&limit=16"),
+    ];
     let mut seen: HashSet<String> = HashSet::new();
-    for it in resp.results {
-        let id = match it.track_id.or(it.collection_id) {
-            Some(x) if x != 0 => x,
-            _ => continue,
+    for url in urls {
+        let resp: ItunesResp = match agent
+            .get(&url)
+            .call()
+            .map_err(|e| e.to_string())
+            .and_then(|r| r.into_json().map_err(|e| e.to_string()))
+        {
+            Ok(r) => r,
+            Err(_) => continue,
         };
-        let sku = format!("AP-{id}");
-        if !seen.insert(sku.clone()) {
-            continue;
-        }
-        let nombre = match it.track_name.or(it.collection_name) {
-            Some(n) if !n.trim().is_empty() => n,
-            _ => continue,
-        };
-        let precio = it.track_price.or(it.collection_price).unwrap_or(0.0);
-        if precio <= 0.0 {
-            continue;
-        }
-        let artista = it.artist_name.unwrap_or_default();
-        let nombre_full = if artista.is_empty() {
-            nombre
-        } else {
-            format!("{nombre} — {artista}")
-        };
-        let genero = it.primary_genre_name.unwrap_or_default();
-        let desc = it
-            .long_description
-            .or(it.description)
-            .filter(|d| !d.trim().is_empty())
-            .unwrap_or_else(|| {
-                if genero.is_empty() {
-                    "Contenido digital de Apple".to_string()
-                } else {
-                    genero.clone()
-                }
+        for it in resp.results {
+            let es_album = it.wrapper_type.as_deref() == Some("collection");
+            let id = match (if es_album { it.collection_id } else { it.track_id }).or(it.collection_id)
+            {
+                Some(x) if x != 0 => x,
+                _ => continue,
+            };
+            let sku = format!("AP-{id}");
+            if !seen.insert(sku.clone()) {
+                continue;
+            }
+            let nombre = if es_album {
+                it.collection_name.clone()
+            } else {
+                it.track_name.clone()
+            };
+            let nombre = match nombre {
+                Some(n) if !n.trim().is_empty() => n,
+                _ => continue,
+            };
+            // Real Apple price: album => collectionPrice, song => trackPrice.
+            // Album-only songs (trackPrice <= 0) are skipped; the album carries them.
+            let precio = match if es_album { it.collection_price } else { it.track_price } {
+                Some(p) if p > 0.0 => p,
+                _ => continue,
+            };
+            let artista = it.artist_name.clone().unwrap_or_default();
+            let genero = it.primary_genre_name.clone().unwrap_or_default();
+            let tipo = if es_album { "Álbum" } else { "Canción" };
+            let nombre_full = if artista.is_empty() {
+                nombre
+            } else {
+                format!("{nombre} — {artista}")
+            };
+            let desc = if genero.is_empty() {
+                format!("{tipo} · Apple Music")
+            } else {
+                format!("{tipo} · {genero} · Apple Music")
+            };
+            let categoria = if genero.is_empty() {
+                tipo.to_string()
+            } else {
+                format!("{tipo} · {genero}")
+            };
+            let foto = it
+                .artwork_url100
+                .clone()
+                .map(|u| u.replace("100x100", "600x600"));
+            out.push(Product {
+                sku: sku.clone(),
+                nombre_es: nombre_full,
+                categoria,
+                precio_mxn: precio.round().max(1.0) as u32,
+                descripcion_es: desc,
+                foto_url: foto.into_iter().collect(),
+                politica_devolucion: None,
+                variantes: vec![Variant {
+                    sku,
+                    color: "digital".to_string(),
+                    talla: None,
+                    stock: 999,
+                    precio_mxn: None,
+                    foto_url: vec![],
+                }],
             });
-        let categoria = if genero.is_empty() {
-            "Media".to_string()
-        } else {
-            genero.clone()
-        };
-        let foto = it.artwork_url100.map(|u| u.replace("100x100", "600x600"));
-        out.push(Product {
-            sku: sku.clone(),
-            nombre_es: nombre_full,
-            categoria,
-            precio_mxn: precio.round().max(1.0) as u32,
-            descripcion_es: desc,
-            foto_url: foto.into_iter().collect(),
-            politica_devolucion: None,
-            variantes: vec![Variant {
-                sku,
-                color: "digital".to_string(),
-                talla: None,
-                stock: 999,
-                precio_mxn: None,
-                foto_url: vec![],
-            }],
-        });
+        }
     }
     out
 }
@@ -983,6 +999,9 @@ h1{font-size:1.15rem;margin:.4rem 0}
 #log .me{text-align:right} #log .me .b{background:#005c4b}
 form{display:flex;gap:8px;margin-top:12px} input{flex:1;font-size:1rem;padding:11px;border-radius:8px;border:0}
 button.send{font-size:1rem;padding:11px 16px;border-radius:8px;border:0;background:#00a884;color:#fff;cursor:pointer}
+#log .b img.cov{display:block;width:118px;height:118px;object-fit:cover;border-radius:9px;margin:8px 0 2px;border:1px solid #2a3942}
+#log .b strong{color:#fff}
+#log .b a{color:#53bdeb}
 </style></head><body>
 <header>
   <h1>🛍 __NOMBRE__</h1>
@@ -1003,9 +1022,11 @@ $('bes').onclick=()=>{lang='es';localStorage.setItem('lang',lang);apply();$('m')
 $('ben').onclick=()=>{lang='en';localStorage.setItem('lang',lang);apply();$('m').focus();};
 apply();
 const log=$('log');
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function render(t){let s=esc(t);s=s.replace(/https?:\/\/[^\s)\]]+?\.(?:jpg|jpeg|png)/gi,u=>'<img class="cov" src="'+u+'" loading="lazy">');s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');s=s.replace(/\n/g,'<br>');return s;}
 function add(t,who){const d=document.createElement('div');d.className=who;const b=document.createElement('div');b.className='b';b.textContent=t;d.appendChild(b);log.appendChild(d);window.scrollTo(0,9e9);return b;}
 $('f').onsubmit=async e=>{e.preventDefault();const t=$('m').value.trim();if(!t)return;add(t,'me');$('m').value='';const b=add(I18N[lang].wait,'bot');
-try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:t,lang:lang})});const j=await r.json();b.textContent=j.reply||j.error||I18N[lang].none;}
+try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:t,lang:lang})});const j=await r.json();b.innerHTML=render(j.reply||j.error||I18N[lang].none);}
 catch(err){b.textContent='error: '+err;}};
 </script></body></html>"##;
     HTML.replace("__NOMBRE__", nombre)
