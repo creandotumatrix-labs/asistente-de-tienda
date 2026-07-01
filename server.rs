@@ -12,6 +12,7 @@
 //!   GET  /history  -> last chat turns persisted in Postgres
 //!   POST /chat     -> { "mensaje": "...", "lang": "es"|"en" } -> drives the agent
 
+use std::collections::HashSet;
 use std::io::Read;
 use std::path::Path;
 use std::time::Duration;
@@ -72,6 +73,7 @@ fn main() {
         db.is_some()
     );
 
+    let mut wa_seen: HashSet<String> = HashSet::new();
     for req in server.incoming_requests() {
         let method = req.method().clone();
         let path = req.url().split('?').next().unwrap_or("/").to_string();
@@ -101,8 +103,11 @@ fn main() {
             }
             (Method::Get, "/history") => handle_history(&mut db, req),
             (Method::Post, "/chat") => handle_chat(&state, &model, max_tokens, &mut db, req),
-            // Real WhatsApp inbound (Twilio Sandbox): form-encoded in, TwiML out.
-            (Method::Post, "/whatsapp") => handle_whatsapp(&state, &model, max_tokens, &mut db, req),
+            // Real WhatsApp (Meta Cloud API): GET verifies the webhook, POST handles inbound.
+            (Method::Get, "/whatsapp") => wa_verify(req),
+            (Method::Post, "/whatsapp") => {
+                handle_whatsapp(&state, &model, max_tokens, &mut db, &mut wa_seen, req)
+            }
             _ => respond_json(req, 404, &json!({ "error": "no encontrado" }).to_string()),
         }
     }
@@ -490,63 +495,120 @@ fn handle_chat(
     }
 }
 
-// ── WhatsApp (Twilio Sandbox: inbound form-encoded → TwiML reply) ───────────
+// ── WhatsApp (Meta Cloud API) ───────────────────────────────────────────────
 
+/// GET webhook verification — echo Meta's hub.challenge when the token matches.
+fn wa_verify(req: Request) {
+    let url = req.url().to_string();
+    let mode = query_param(&url, "hub.mode");
+    let token = query_param(&url, "hub.verify_token");
+    let challenge = query_param(&url, "hub.challenge").unwrap_or_default();
+    let expected = std::env::var("WHATSAPP_VERIFY_TOKEN").ok();
+    if mode.as_deref() == Some("subscribe") && token.is_some() && token == expected {
+        let _ = req.respond(Response::from_string(challenge));
+    } else {
+        respond_json(req, 403, &json!({ "error": "verify_token inválido" }).to_string());
+    }
+}
+
+/// POST inbound message → run the agent → send the reply via the Graph API.
+/// De-dups Meta retries by message id, and always returns 200.
 fn handle_whatsapp(
     fallback: &AppState,
     model: &str,
     max_tokens: u32,
     db: &mut Option<postgres::Client>,
+    seen: &mut HashSet<String>,
     mut req: Request,
 ) {
     let mut body = String::new();
     let _ = req.as_reader().read_to_string(&mut body);
-    let mensaje = form_field(&body, "Body").unwrap_or_default();
+    let v: Value = serde_json::from_str(&body).unwrap_or(Value::Null);
 
-    let reply = if mensaje.trim().is_empty() {
-        "¡Hola! 👋 Soy el asistente de Tienda Vortex. Pregúntame por productos, envíos o tu pedido."
-            .to_string()
-    } else {
-        match Client::from_env() {
-            Ok(client) => {
-                let live = db
-                    .as_mut()
-                    .and_then(|c| load_catalog_db(c).ok())
-                    .filter(|c| !c.productos.is_empty())
-                    .map(|c| AppState::new(fallback.config.clone(), c));
-                let state: &AppState = live.as_ref().unwrap_or(fallback);
-                let mut agent = Agent::new(state, client, model.to_string(), max_tokens);
-                match agent.send(&mensaje) {
-                    Ok(turn) => {
-                        let tools = turn
-                            .trace
-                            .iter()
-                            .map(|t| t.name.as_str())
-                            .collect::<Vec<_>>()
-                            .join(",");
-                        log_turn(db, &mensaje, &turn.reply, &tools);
-                        turn.reply
-                    }
-                    Err(e) => format!("Lo siento, hubo un error: {e}"),
-                }
-            }
-            Err(_) => "El servidor no tiene configurada la API key todavía.".to_string(),
+    if let Some(m) = v.pointer("/entry/0/changes/0/value/messages/0") {
+        let id = m.get("id").and_then(Value::as_str).unwrap_or("").to_string();
+        let from = m.get("from").and_then(Value::as_str).unwrap_or("").to_string();
+        let text = m
+            .get("text")
+            .and_then(|t| t.get("body"))
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+
+        if !id.is_empty() && !seen.insert(id) {
+            return respond_json(req, 200, "{\"status\":\"dup\"}");
         }
-    };
 
-    let twiml = format!(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response><Message>{}</Message></Response>",
-        xml_escape(&truncate(&reply, 1500))
-    );
-    let _ = req.respond(
-        Response::from_string(twiml).with_header(header("Content-Type", "text/xml; charset=utf-8")),
-    );
+        if !from.is_empty() && !text.trim().is_empty() {
+            let reply = match Client::from_env() {
+                Ok(client) => {
+                    let live = db
+                        .as_mut()
+                        .and_then(|c| load_catalog_db(c).ok())
+                        .filter(|c| !c.productos.is_empty())
+                        .map(|c| AppState::new(fallback.config.clone(), c));
+                    let state: &AppState = live.as_ref().unwrap_or(fallback);
+                    let mut agent = Agent::new(state, client, model.to_string(), max_tokens);
+                    match agent.send(&text) {
+                        Ok(turn) => {
+                            let tools = turn
+                                .trace
+                                .iter()
+                                .map(|t| t.name.as_str())
+                                .collect::<Vec<_>>()
+                                .join(",");
+                            log_turn(db, &text, &turn.reply, &tools);
+                            turn.reply
+                        }
+                        Err(e) => format!("Lo siento, hubo un error: {e}"),
+                    }
+                }
+                Err(_) => "El servidor no tiene la API key configurada.".to_string(),
+            };
+            wa_send(&from, &truncate(&reply, 3000));
+        }
+    }
+    respond_json(req, 200, "{\"status\":\"ok\"}");
 }
 
-fn form_field(body: &str, name: &str) -> Option<String> {
-    for pair in body.split('&') {
+/// Send a WhatsApp text via the Meta Graph API (token + phone id from env).
+fn wa_send(to: &str, text: &str) {
+    let (token, phone_id) = match (
+        std::env::var("WHATSAPP_ACCESS_TOKEN"),
+        std::env::var("WHATSAPP_PHONE_NUMBER_ID"),
+    ) {
+        (Ok(t), Ok(p)) if !t.is_empty() && !p.is_empty() => (t, p),
+        _ => {
+            eprintln!("wa_send: faltan WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID");
+            return;
+        }
+    };
+    let url = format!("https://graph.facebook.com/v20.0/{phone_id}/messages");
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(5))
+        .timeout_read(Duration::from_secs(15))
+        .build();
+    let payload = json!({
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": { "body": text },
+    });
+    if let Err(e) = agent
+        .post(&url)
+        .set("Authorization", &format!("Bearer {token}"))
+        .set("Content-Type", "application/json")
+        .send_json(payload)
+    {
+        eprintln!("wa_send falló: {e}");
+    }
+}
+
+fn query_param(url: &str, key: &str) -> Option<String> {
+    let q = url.split('?').nth(1)?;
+    for pair in q.split('&') {
         let mut it = pair.splitn(2, '=');
-        if it.next() == Some(name) {
+        if it.next() == Some(key) {
             return Some(percent_decode(it.next().unwrap_or("")));
         }
     }
@@ -591,14 +653,6 @@ fn hex_val(b: u8) -> Option<u8> {
         b'A'..=b'F' => Some(b - b'A' + 10),
         _ => None,
     }
-}
-
-fn xml_escape(s: &str) -> String {
-    s.replace('&', "&amp;")
-        .replace('<', "&lt;")
-        .replace('>', "&gt;")
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
 }
 
 fn truncate(s: &str, max: usize) -> String {
