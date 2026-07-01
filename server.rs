@@ -520,6 +520,120 @@ fn fetch_catalog_itunes() -> Result<Vec<Product>, String> {
     Ok(productos)
 }
 
+/// Pull meaningful search keywords out of a user message (drop stopwords).
+fn keywords(msg: &str) -> String {
+    const STOP: &[&str] = &[
+        "the", "a", "an", "some", "any", "you", "do", "does", "did", "have", "has", "had", "got",
+        "is", "are", "was", "there", "this", "that", "these", "those", "i", "we", "me", "my", "our",
+        "for", "of", "to", "in", "on", "at", "with", "and", "or", "please", "hi", "hello", "hey",
+        "it", "its", "need", "want", "looking", "buy", "get", "show", "find", "search", "sell",
+        "tienen", "tiene", "tienes", "tenes", "hay", "tengo", "quiero", "busco", "buscar", "vende",
+        "venden", "muestra", "dame", "por", "favor", "de", "del", "la", "el", "los", "las", "un",
+        "una", "unos", "unas", "que", "cual", "cuales", "con", "sin", "y", "o", "hola", "algun",
+        "alguna", "alguno", "algunas", "algo", "producto", "productos", "tienda", "precio", "cuanto",
+        "cuesta", "me", "mi", "tu", "su",
+    ];
+    let mut out: Vec<String> = Vec::new();
+    for raw in msg.split(|c: char| !c.is_alphanumeric()) {
+        let w = raw.to_lowercase();
+        if w.chars().count() < 2 || STOP.contains(&w.as_str()) {
+            continue;
+        }
+        if !out.contains(&w) {
+            out.push(w);
+        }
+        if out.len() >= 6 {
+            break;
+        }
+    }
+    out.join(" ")
+}
+
+/// Live iTunes search for the user's terms so ANY real Apple product is findable
+/// (not just the pre-synced subset). Results are real, grounded, MXN-priced.
+fn fetch_itunes_query(term: &str) -> Vec<Product> {
+    let mut out: Vec<Product> = Vec::new();
+    if term.trim().is_empty() {
+        return out;
+    }
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(4))
+        .timeout_read(Duration::from_secs(12))
+        .build();
+    let q = term.split_whitespace().collect::<Vec<_>>().join("+");
+    let url = format!("https://itunes.apple.com/search?term={q}&country=MX&limit=18");
+    let resp: ItunesResp = match agent
+        .get(&url)
+        .call()
+        .map_err(|e| e.to_string())
+        .and_then(|r| r.into_json().map_err(|e| e.to_string()))
+    {
+        Ok(r) => r,
+        Err(_) => return out,
+    };
+    let mut seen: HashSet<String> = HashSet::new();
+    for it in resp.results {
+        let id = match it.track_id.or(it.collection_id) {
+            Some(x) if x != 0 => x,
+            _ => continue,
+        };
+        let sku = format!("AP-{id}");
+        if !seen.insert(sku.clone()) {
+            continue;
+        }
+        let nombre = match it.track_name.or(it.collection_name) {
+            Some(n) if !n.trim().is_empty() => n,
+            _ => continue,
+        };
+        let precio = it.track_price.or(it.collection_price).unwrap_or(0.0);
+        if precio <= 0.0 {
+            continue;
+        }
+        let artista = it.artist_name.unwrap_or_default();
+        let nombre_full = if artista.is_empty() {
+            nombre
+        } else {
+            format!("{nombre} — {artista}")
+        };
+        let genero = it.primary_genre_name.unwrap_or_default();
+        let desc = it
+            .long_description
+            .or(it.description)
+            .filter(|d| !d.trim().is_empty())
+            .unwrap_or_else(|| {
+                if genero.is_empty() {
+                    "Contenido digital de Apple".to_string()
+                } else {
+                    genero.clone()
+                }
+            });
+        let categoria = if genero.is_empty() {
+            "Media".to_string()
+        } else {
+            genero.clone()
+        };
+        let foto = it.artwork_url100.map(|u| u.replace("100x100", "600x600"));
+        out.push(Product {
+            sku: sku.clone(),
+            nombre_es: nombre_full,
+            categoria,
+            precio_mxn: precio.round().max(1.0) as u32,
+            descripcion_es: desc,
+            foto_url: foto.into_iter().collect(),
+            politica_devolucion: None,
+            variantes: vec![Variant {
+                sku,
+                color: "digital".to_string(),
+                talla: None,
+                stock: 999,
+                precio_mxn: None,
+                foto_url: vec![],
+            }],
+        });
+    }
+    out
+}
+
 /// Last-resort fallback when the DB is unreachable: API, else bundled seed JSON.
 fn load_catalog() -> (Catalog, String) {
     let seed = || {
@@ -626,12 +740,26 @@ fn handle_chat(
         }
     };
 
-    // Real per-request data call to the backend: load catalog + orders from Postgres.
+    // Real per-request data call: load catalog + orders from Postgres, then
+    // augment with a LIVE iTunes search on the user's terms so any real Apple
+    // product is findable — not just the pre-synced subset.
+    let kw = keywords(&mensaje);
     let live = db
         .as_mut()
         .and_then(|c| load_catalog_db(c).ok())
         .filter(|cat| !cat.productos.is_empty())
-        .map(|cat| AppState::new(fallback.config.clone(), cat));
+        .map(|mut cat| {
+            if kw.len() >= 3 {
+                let existentes: HashSet<String> =
+                    cat.productos.iter().map(|p| p.sku.clone()).collect();
+                for p in fetch_itunes_query(&kw) {
+                    if !existentes.contains(&p.sku) {
+                        cat.productos.push(p);
+                    }
+                }
+            }
+            AppState::new(fallback.config.clone(), cat)
+        });
     let state: &AppState = live.as_ref().unwrap_or(fallback);
 
     let mut agent = Agent::new(state, client, model.to_string(), max_tokens);
