@@ -1093,8 +1093,8 @@ $('ben').onclick=()=>{lang='en';localStorage.setItem('lang',lang);apply();$('m')
 const log=$('log');
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function render(t){let s=esc(t);
-  s=s.replace(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g,'<img class="cov" src="$1" loading="lazy">');
-  s=s.replace(/(^|[\s>])(https?:\/\/[^\s)<\]"]+\.(?:jpg|jpeg|png))/gi,'$1<img class="cov" src="$2" loading="lazy">');
+  s=s.replace(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g,'<img class="cov" src="$1">');
+  s=s.replace(/(^|[\s>])(https?:\/\/[^\s)<\]"]+\.(?:jpg|jpeg|png))/gi,'$1<img class="cov" src="$2">');
   s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
   s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
   s=s.replace(/^[ \t]*\|?[ \t:|-]{3,}\|?[ \t]*$/gm,'');
