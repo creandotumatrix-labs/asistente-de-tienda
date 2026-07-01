@@ -95,6 +95,18 @@ fn main() {
                 });
                 respond_json(req, 200, &body.to_string());
             }
+            // On-demand live catalog refresh from the product API into Postgres.
+            (Method::Get, "/admin/resync") => {
+                let out = match db.as_mut() {
+                    Some(c) => match sync_products(c) {
+                        Ok(n) => json!({ "synced": n, "source": std::env::var("CATALOG_API_URL")
+                            .unwrap_or_else(|_| DEFAULT_CATALOG_API.to_string()) }),
+                        Err(e) => json!({ "error": e }),
+                    },
+                    None => json!({ "error": "sin base de datos" }),
+                };
+                respond_json(req, 200, &out.to_string());
+            }
             (Method::Get, "/") => {
                 let _ = req.respond(
                     Response::from_string(index_html(&state.config.tienda.nombre))
@@ -161,30 +173,10 @@ fn migrate_and_seed(c: &mut postgres::Client) -> Result<(), String> {
     )
     .map_err(|e| format!("migrate: {e}"))?;
 
-    // Seed products from the real product API on first boot only.
-    let pcount: i64 = c
-        .query_one("SELECT count(*) FROM products", &[])
-        .map_err(|e| e.to_string())?
-        .get(0);
-    if pcount == 0 {
-        let productos = fetch_catalog_from_api(DEFAULT_CATALOG_API)?;
-        for p in &productos {
-            let v = &p.variantes[0];
-            let foto: Option<&str> = p.foto_url.first().map(String::as_str);
-            let talla: Option<&str> = v.talla.as_deref();
-            let precio = p.precio_mxn as i32;
-            let stock = v.stock as i32;
-            c.execute(
-                "INSERT INTO products (sku,nombre,categoria,precio_mxn,descripcion,stock,color,talla,foto_url) \
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (sku) DO NOTHING",
-                &[
-                    &p.sku, &p.nombre_es, &p.categoria, &precio, &p.descripcion_es, &stock,
-                    &v.color, &talla, &foto,
-                ],
-            )
-            .map_err(|e| format!("insert product: {e}"))?;
-        }
-        eprintln!("db: sembrados {} productos desde el API", productos.len());
+    // Sync the catalog from the LIVE product API (upsert) — refreshes price/stock.
+    match sync_products(c) {
+        Ok(n) => eprintln!("db: catálogo sincronizado en vivo ({n} productos)"),
+        Err(e) => eprintln!("db: sync catálogo falló ({e}); uso lo que ya hay en la DB"),
     }
 
     // Seed a few sample orders on first boot (defined in code, not JSON).
@@ -205,6 +197,34 @@ fn migrate_and_seed(c: &mut postgres::Client) -> Result<(), String> {
         eprintln!("db: sembrados pedidos de ejemplo");
     }
     Ok(())
+}
+
+/// Pull the catalog from the live product API (CATALOG_API_URL) and upsert into
+/// Postgres — refreshes price/stock so the DB mirrors the live source.
+fn sync_products(c: &mut postgres::Client) -> Result<usize, String> {
+    let url = std::env::var("CATALOG_API_URL").unwrap_or_else(|_| DEFAULT_CATALOG_API.to_string());
+    let productos = fetch_catalog_from_api(&url)?;
+    for p in &productos {
+        let v = &p.variantes[0];
+        let foto: Option<&str> = p.foto_url.first().map(String::as_str);
+        let talla: Option<&str> = v.talla.as_deref();
+        let precio = p.precio_mxn as i32;
+        let stock = v.stock as i32;
+        c.execute(
+            "INSERT INTO products (sku,nombre,categoria,precio_mxn,descripcion,stock,color,talla,foto_url) \
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) \
+             ON CONFLICT (sku) DO UPDATE SET \
+                nombre=EXCLUDED.nombre, categoria=EXCLUDED.categoria, precio_mxn=EXCLUDED.precio_mxn, \
+                descripcion=EXCLUDED.descripcion, stock=EXCLUDED.stock, color=EXCLUDED.color, \
+                talla=EXCLUDED.talla, foto_url=EXCLUDED.foto_url",
+            &[
+                &p.sku, &p.nombre_es, &p.categoria, &precio, &p.descripcion_es, &stock,
+                &v.color, &talla, &foto,
+            ],
+        )
+        .map_err(|e| format!("upsert product: {e}"))?;
+    }
+    Ok(productos.len())
 }
 
 // ── Live catalog load from Postgres (real queries per request) ──────────────
