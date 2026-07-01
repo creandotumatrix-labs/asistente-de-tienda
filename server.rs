@@ -985,49 +985,89 @@ fn fatal(msg: &str) -> ! {
 
 fn index_html(nombre: &str) -> String {
     const HTML: &str = r##"<!doctype html><html lang="es" id="html"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>__NOMBRE__ · Asistente</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>__NOMBRE__ · Música con IA</title>
 <style>
-body{font-family:system-ui,-apple-system,sans-serif;max-width:640px;margin:24px auto;padding:0 16px;background:#0b141a;color:#e9edef}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
-h1{font-size:1.15rem;margin:.4rem 0}
-.sub{color:#8696a0;margin:.2rem 0 .6rem}
-.seg{display:inline-flex;border:1px solid #2a3942;border-radius:999px;overflow:hidden}
-.seg button{background:transparent;color:#8696a0;border:0;padding:6px 13px;font-size:.85rem;cursor:pointer}
-.seg button.on{background:#00a884;color:#fff}
-#log .b{background:#202c33;border-radius:10px;padding:9px 13px;margin:7px 0;white-space:pre-wrap;display:inline-block;max-width:85%}
-#log .me{text-align:right} #log .me .b{background:#005c4b}
-form{display:flex;gap:8px;margin-top:12px} input{flex:1;font-size:1rem;padding:11px;border-radius:8px;border:0}
-button.send{font-size:1rem;padding:11px 16px;border-radius:8px;border:0;background:#00a884;color:#fff;cursor:pointer}
-#log .b img.cov{display:block;width:118px;height:118px;object-fit:cover;border-radius:9px;margin:8px 0 2px;border:1px solid #2a3942}
-#log .b strong{color:#fff}
-#log .b a{color:#53bdeb}
+:root{--am1:#fb2c6b;--am2:#9b5cff;--am3:#ff6a8b;--bg:#08070d;--ink:#f4f0f7;--muted:#a99fb6;--line:rgba(255,255,255,.09);--glass:rgba(255,255,255,.05)}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+body::before{content:"";position:fixed;inset:-25%;z-index:-1;background:radial-gradient(45% 35% at 12% 6%,rgba(251,44,107,.24),transparent 60%),radial-gradient(45% 40% at 90% 3%,rgba(155,92,255,.22),transparent 60%),radial-gradient(60% 45% at 60% 100%,rgba(155,92,255,.10),transparent 60%);filter:blur(24px)}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-bottom:1px solid var(--line);backdrop-filter:blur(12px);background:rgba(8,7,13,.62)}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(140deg,var(--am1),var(--am2));display:grid;place-items:center;font-size:20px;flex:none;box-shadow:0 8px 22px -8px rgba(251,44,107,.65)}
+.brand h1{font-size:1.02rem;margin:0;font-weight:800;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand .sub{font-size:.72rem;color:var(--muted);margin-top:1px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.seg button{background:transparent;color:var(--muted);border:0;padding:6px 13px;font-size:.78rem;font-weight:700;cursor:pointer}
+.seg button.on{background:linear-gradient(120deg,var(--am1),var(--am2));color:#fff}
+main{flex:1;overflow-y:auto;padding:18px 16px 10px}
+#log{max-width:680px;margin:0 auto}
+.empty{max-width:560px;margin:9vh auto 0;text-align:center;padding:0 8px}
+.empty .big{font-size:1.5rem;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.empty .big span{background:linear-gradient(100deg,var(--am3),var(--am1) 45%,var(--am2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.empty p{color:var(--muted);margin:.55rem 0 1.3rem}
+.chips{display:flex;flex-wrap:wrap;gap:9px;justify-content:center}
+.chip{border:1px solid var(--line);background:var(--glass);color:var(--ink);border-radius:999px;padding:9px 15px;font-size:.86rem;cursor:pointer;transition:transform .12s,border-color .12s}
+.chip:hover{transform:translateY(-2px);border-color:var(--am1)}
+.row{display:flex;margin:11px 0}
+.row.me{justify-content:flex-end}
+.b{max-width:88%;padding:11px 15px;border-radius:18px;font-size:.95rem;line-height:1.5;overflow-wrap:anywhere}
+.me .b{background:linear-gradient(120deg,var(--am1),var(--am2));color:#fff;border-bottom-right-radius:6px}
+.ai .b{background:var(--glass);border:1px solid var(--line);color:#ece7f2;border-bottom-left-radius:6px}
+.ai .b img.cov{display:block;width:136px;height:136px;object-fit:cover;border-radius:12px;margin:10px 0 4px;border:1px solid var(--line);background:#15121c}
+.ai .b strong{color:#fff}
+.ai .b a{color:var(--am3)}
+.typing span{display:inline-block;width:7px;height:7px;margin:0 2px;border-radius:50%;background:var(--muted);animation:bounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+footer{padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);backdrop-filter:blur(12px);background:rgba(8,7,13,.62)}
+form{display:flex;gap:10px;max-width:680px;margin:0 auto;align-items:center}
+input{flex:1;font-size:1rem;padding:13px 17px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--ink);outline:none}
+input:focus{border-color:var(--am1)}
+input::placeholder{color:var(--muted)}
+button.send{width:47px;height:47px;flex:none;border-radius:50%;border:0;background:linear-gradient(120deg,var(--am1),var(--am2));color:#fff;cursor:pointer;display:grid;place-items:center;box-shadow:0 8px 22px -8px rgba(251,44,107,.65)}
+button.send svg{width:20px;height:20px}
+button.send:disabled{opacity:.5}
 </style></head><body>
 <header>
-  <h1>🛍 __NOMBRE__</h1>
+  <div class="brand"><span class="logo">♪</span><div style="min-width:0"><h1>__NOMBRE__</h1><div class="sub" id="sub"></div></div></div>
   <div class="seg"><button id="bes" class="on">ES</button><button id="ben">EN</button></div>
 </header>
-<p class="sub" id="sub"></p>
-<div id="log"></div>
-<form id="f"><input id="m" autocomplete="off" autofocus><button class="send" id="send" type="submit"></button></form>
+<main><div id="log"><div class="empty" id="empty"></div></div></main>
+<footer><form id="f"><input id="m" autocomplete="off" autofocus><button class="send" id="send" type="submit" aria-label="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form></footer>
 <script>
 const I18N={
-  es:{lang:'es',sub:'Asistente de la tienda. Pregunta por productos, envíos o tu pedido.',ph:'tienen laptops? a qué precio?',send:'Enviar',wait:'…',none:'(sin respuesta)'},
-  en:{lang:'en',sub:'Store assistant. Ask about products, shipping or your order.',ph:'do you have any laptops? what price?',send:'Send',wait:'…',none:'(no reply)'}
+  es:{lang:'es',sub:'Música de Apple · con IA',ph:'busca un artista, canción o álbum…',none:'(sin respuesta)',hi:'Tu música de Apple, con IA.',lead:'Pídeme cualquier artista, canción o álbum. Lo busco en vivo en Apple con su portada y precio.',chips:['The Beatles','Bad Bunny','Café Tacvba','Coldplay']},
+  en:{lang:'en',sub:'Apple Music · AI-powered',ph:'search an artist, song or album…',none:'(no reply)',hi:'Your Apple Music, powered by AI.',lead:'Ask me for any artist, song or album. I search Apple live and show real cover art and price.',chips:['The Beatles','Taylor Swift','Daft Punk','Coldplay']}
 };
 const $=id=>document.getElementById(id);
+const main=document.querySelector('main');
+function down(){main.scrollTop=main.scrollHeight;}
 let lang=localStorage.getItem('lang')||'es';
-function apply(){const t=I18N[lang];$('html').lang=t.lang;$('sub').textContent=t.sub;$('m').placeholder=t.ph;$('send').textContent=t.send;$('bes').classList.toggle('on',lang==='es');$('ben').classList.toggle('on',lang==='en');}
+function drawEmpty(){const t=I18N[lang];const e=$('empty');if(!e)return;const hi=t.hi.replace(/(IA|AI)\./,'<span>$1</span>.');e.innerHTML='<div class="big">'+hi+'</div><p>'+t.lead+'</p><div class="chips">'+t.chips.map(c=>'<button class="chip">'+c+'</button>').join('')+'</div>';e.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{$('m').value=c.textContent;send();});}
+function apply(){const t=I18N[lang];$('html').lang=t.lang;$('sub').textContent=t.sub;$('m').placeholder=t.ph;$('bes').classList.toggle('on',lang==='es');$('ben').classList.toggle('on',lang==='en');drawEmpty();}
 $('bes').onclick=()=>{lang='es';localStorage.setItem('lang',lang);apply();$('m').focus();};
 $('ben').onclick=()=>{lang='en';localStorage.setItem('lang',lang);apply();$('m').focus();};
-apply();
 const log=$('log');
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function render(t){let s=esc(t);s=s.replace(/https?:\/\/[^\s)\]]+?\.(?:jpg|jpeg|png)/gi,u=>'<img class="cov" src="'+u+'" loading="lazy">');s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');s=s.replace(/\n/g,'<br>');return s;}
-function add(t,who){const d=document.createElement('div');d.className=who;const b=document.createElement('div');b.className='b';b.textContent=t;d.appendChild(b);log.appendChild(d);window.scrollTo(0,9e9);return b;}
-$('f').onsubmit=async e=>{e.preventDefault();const t=$('m').value.trim();if(!t)return;add(t,'me');$('m').value='';const b=add(I18N[lang].wait,'bot');
-try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:t,lang:lang})});const j=await r.json();b.innerHTML=render(j.reply||j.error||I18N[lang].none);}
-catch(err){b.textContent='error: '+err;}};
+function render(t){let s=esc(t);
+  s=s.replace(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g,'<img class="cov" src="$1" loading="lazy">');
+  s=s.replace(/(^|[\s>])(https?:\/\/[^\s)<\]"]+\.(?:jpg|jpeg|png))/gi,'$1<img class="cov" src="$2" loading="lazy">');
+  s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/^[ \t]*\|?[ \t:|-]{3,}\|?[ \t]*$/gm,'');
+  s=s.replace(/[ \t]*\|[ \t]*/g,'  ');
+  s=s.replace(/\n{2,}/g,'\n').replace(/\n/g,'<br>');
+  return s;}
+function bubble(html,who,raw){const r=document.createElement('div');r.className='row '+who;const b=document.createElement('div');b.className='b';if(raw){b.innerHTML=html;}else{b.textContent=html;}r.appendChild(b);log.appendChild(r);down();return b;}
+let busy=false;
+async function send(){const t=$('m').value.trim();if(!t||busy)return;const e=$('empty');if(e)e.remove();busy=true;$('send').disabled=true;bubble(t,'me',false);$('m').value='';const b=bubble('<div class="typing"><span></span><span></span><span></span></div>','ai',true);
+  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:t,lang:lang})});const j=await r.json();b.innerHTML=render(j.reply||j.error||I18N[lang].none);}
+  catch(err){b.textContent='⚠️ '+err;}
+  busy=false;$('send').disabled=false;down();$('m').focus();}
+$('f').onsubmit=e=>{e.preventDefault();send();};
+apply();$('m').focus();
 </script></body></html>"##;
     HTML.replace("__NOMBRE__", nombre)
 }
