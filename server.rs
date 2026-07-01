@@ -990,13 +990,14 @@ fn index_html(nombre: &str) -> String {
 <style>
 :root{--am1:#fb2c6b;--am2:#9b5cff;--am3:#ff6a8b;--bg:#08070d;--ink:#f4f0f7;--muted:#a99fb6;--line:rgba(255,255,255,.09);--glass:rgba(255,255,255,.05)}
 *{box-sizing:border-box}
-html,body{height:100%}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+html{height:100%}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.app{height:100vh;height:100dvh;display:flex;flex-direction:column}
 body::before{content:"";position:fixed;inset:-25%;z-index:-1;background:radial-gradient(45% 35% at 12% 6%,rgba(251,44,107,.24),transparent 60%),radial-gradient(45% 40% at 90% 3%,rgba(155,92,255,.22),transparent 60%),radial-gradient(60% 45% at 60% 100%,rgba(155,92,255,.10),transparent 60%);filter:blur(24px)}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 18px;border-bottom:1px solid var(--line);backdrop-filter:blur(12px);background:rgba(8,7,13,.62)}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
 .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(140deg,var(--am1),var(--am2));display:grid;place-items:center;font-size:20px;flex:none;box-shadow:0 8px 22px -8px rgba(251,44,107,.65)}
-.brand h1{font-size:1.02rem;margin:0;font-weight:800;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand h1{font-size:.92rem;margin:0;font-weight:800;letter-spacing:-.2px;line-height:1.12}
 .brand .sub{font-size:.72rem;color:var(--muted);margin-top:1px}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
 .seg button{background:transparent;color:var(--muted);border:0;padding:6px 13px;font-size:.78rem;font-weight:700;cursor:pointer}
@@ -1029,13 +1030,53 @@ input::placeholder{color:var(--muted)}
 button.send{width:47px;height:47px;flex:none;border-radius:50%;border:0;background:linear-gradient(120deg,var(--am1),var(--am2));color:#fff;cursor:pointer;display:grid;place-items:center;box-shadow:0 8px 22px -8px rgba(251,44,107,.65)}
 button.send svg{width:20px;height:20px}
 button.send:disabled{opacity:.5}
+.more{border:0;background:transparent;color:var(--muted);font-size:12px;padding:9px;cursor:pointer;text-align:center;flex:none;width:100%}
+.more:hover{color:var(--am3)}
+.info{border-top:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.025),transparent)}
+.iwrap{max-width:760px;margin:0 auto;padding:46px 20px 66px}
+.ikick{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;background:linear-gradient(100deg,var(--am3),var(--am2));-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700}
+.info h2{font-size:1.55rem;letter-spacing:-.5px;margin:9px 0 0;font-weight:820;line-height:1.16}
+.info .lead{color:var(--muted);font-size:1rem;margin:14px 0 0;line-height:1.65}
+.info .lead b{color:var(--ink)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:28px 0 0}
+.step2{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:18px}
+.step2 .n{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12px;color:var(--am3)}
+.step2 .st{font-size:24px;margin:5px 0 8px}
+.step2 h3{margin:0 0 5px;font-size:15px}
+.step2 p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5}
+.feats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:24px 0 0}
+.feat{display:flex;gap:11px;align-items:flex-start;background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.feat .fi{font-size:18px;flex:none}
+.feat b{font-size:14px}.feat span{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.tech{margin:26px 0 0;font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:16px;line-height:1.7}
+@media(max-width:640px){.steps{grid-template-columns:1fr}.feats{grid-template-columns:1fr}}
 </style></head><body>
+<div class="app">
 <header>
   <div class="brand"><span class="logo">♪</span><div style="min-width:0"><h1>__NOMBRE__</h1><div class="sub" id="sub"></div></div></div>
   <div class="seg"><button id="bes" class="on">ES</button><button id="ben">EN</button></div>
 </header>
 <main><div id="log"><div class="empty" id="empty"></div></div></main>
 <footer><form id="f"><input id="m" autocomplete="off" autofocus><button class="send" id="send" type="submit" aria-label="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form></footer>
+<button class="more" onclick="document.getElementById('info').scrollIntoView({behavior:'smooth'})">▾ ¿Qué es esto? · what is this?</button>
+</div>
+<section class="info" id="info"><div class="iwrap">
+<div class="ikick">About this store</div>
+<h2>Georges Apple Music Reseller — a virtual music store, run by AI</h2>
+<p class="lead">There's no catalog to browse. You just <b>chat with the assistant above</b> — ask for any artist, song, or album and it searches <b>Apple's music catalog live</b>, then shows the real title, the <b>album cover</b>, and the price in <b>Mexican pesos (MXN)</b>, with a checkout link. Every detail comes straight from Apple — it never makes up a song, a price, or an album.</p>
+<div class="steps">
+  <div class="step2"><div class="n">01</div><div class="st">💬</div><h3>Ask for anything</h3><p>Type an artist, song, or album — in English or Spanish. Here on the web, or over WhatsApp.</p></div>
+  <div class="step2"><div class="n">02</div><div class="st">🍎</div><h3>It searches Apple live</h3><p>The AI queries Apple's catalog in real time — songs and albums, Mexican store, so prices come back in MXN.</p></div>
+  <div class="step2"><div class="n">03</div><div class="st">🛒</div><h3>Real results + checkout</h3><p>You get real titles with cover art and price, then a secure link to buy.</p></div>
+</div>
+<div class="feats">
+  <div class="feat"><span class="fi">🍎</span><div><b>Apple is the source of truth</b><span>Titles, prices and covers are pulled live from Apple — never from the model's memory.</span></div></div>
+  <div class="feat"><span class="fi">💿</span><div><b>Songs &amp; albums</b><span>Buy a single track or a full album, each with its real price.</span></div></div>
+  <div class="feat"><span class="fi">🖼️</span><div><b>Real cover art</b><span>Every result shows its actual album artwork from Apple's CDN.</span></div></div>
+  <div class="feat"><span class="fi">🛡️</span><div><b>Zero hallucination</b><span>If Apple returns nothing, it says so — no invented catalog. Guardrails enforced in code.</span></div></div>
+</div>
+<div class="tech">Built in Rust with an Anthropic tool-use loop over Apple's iTunes catalog · bilingual es-MX / English · WhatsApp + web · a demo by Marcus Patman, AdventureWave Labs. Not affiliated with Apple Inc.</div>
+</div></section>
 <script>
 const I18N={
   es:{lang:'es',sub:'Música de Apple · con IA',ph:'busca un artista, canción o álbum…',none:'(sin respuesta)',hi:'Tu música de Apple, con IA.',lead:'Pídeme cualquier artista, canción o álbum. Lo busco en vivo en Apple con su portada y precio.',chips:['The Beatles','Bad Bunny','Café Tacvba','Coldplay']},
