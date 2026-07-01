@@ -203,7 +203,7 @@ fn migrate_and_seed(c: &mut postgres::Client) -> Result<(), String> {
 /// Postgres — refreshes price/stock so the DB mirrors the live source.
 fn sync_products(c: &mut postgres::Client) -> Result<usize, String> {
     let url = std::env::var("CATALOG_API_URL").unwrap_or_else(|_| DEFAULT_CATALOG_API.to_string());
-    let productos = fetch_catalog_from_api(&url)?;
+    let productos = fetch_catalog(&url)?;
     for p in &productos {
         let v = &p.variantes[0];
         let foto: Option<&str> = p.foto_url.first().map(String::as_str);
@@ -385,13 +385,149 @@ fn fetch_catalog_from_api(url: &str) -> Result<Vec<Product>, String> {
         .collect())
 }
 
+/// Route the configured source to the right fetcher.
+fn fetch_catalog(source: &str) -> Result<Vec<Product>, String> {
+    if source.eq_ignore_ascii_case("itunes") {
+        fetch_catalog_itunes()
+    } else {
+        fetch_catalog_from_api(source)
+    }
+}
+
+// ── Apple iTunes Search API (free, no key, real products + real MXN prices) ──
+
+#[derive(Deserialize)]
+struct ItunesResp {
+    #[serde(default)]
+    results: Vec<ItunesItem>,
+}
+
+#[derive(Deserialize)]
+struct ItunesItem {
+    #[serde(rename = "trackId", default)]
+    track_id: Option<i64>,
+    #[serde(rename = "collectionId", default)]
+    collection_id: Option<i64>,
+    #[serde(rename = "trackName", default)]
+    track_name: Option<String>,
+    #[serde(rename = "collectionName", default)]
+    collection_name: Option<String>,
+    #[serde(rename = "artistName", default)]
+    artist_name: Option<String>,
+    #[serde(rename = "primaryGenreName", default)]
+    primary_genre_name: Option<String>,
+    #[serde(rename = "trackPrice", default)]
+    track_price: Option<f64>,
+    #[serde(rename = "collectionPrice", default)]
+    collection_price: Option<f64>,
+    #[serde(rename = "artworkUrl100", default)]
+    artwork_url100: Option<String>,
+    #[serde(rename = "longDescription", default)]
+    long_description: Option<String>,
+    #[serde(rename = "description", default)]
+    description: Option<String>,
+}
+
+/// Build a real catalog from the Mexican Apple Store (prices already in MXN).
+fn fetch_catalog_itunes() -> Result<Vec<Product>, String> {
+    let agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(5))
+        .timeout_read(Duration::from_secs(20))
+        .build();
+    let queries: [(&str, &str, &str); 8] = [
+        ("hits", "music", "Música"),
+        ("rock", "music", "Música"),
+        ("pop latino", "music", "Música"),
+        ("accion", "movie", "Películas"),
+        ("comedia", "movie", "Películas"),
+        ("juegos", "software", "Apps"),
+        ("fotografia", "software", "Apps"),
+        ("bestseller", "ebook", "Libros"),
+    ];
+    let mut productos: Vec<Product> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    for (term, media, cat) in queries {
+        let q = term.split_whitespace().collect::<Vec<_>>().join("+");
+        let url =
+            format!("https://itunes.apple.com/search?term={q}&media={media}&country=MX&limit=25");
+        let resp: ItunesResp = match agent
+            .get(&url)
+            .call()
+            .map_err(|e| e.to_string())
+            .and_then(|r| r.into_json().map_err(|e| e.to_string()))
+        {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+        for it in resp.results {
+            let id = match it.track_id.or(it.collection_id) {
+                Some(x) if x != 0 => x,
+                _ => continue,
+            };
+            let sku = format!("AP-{id}");
+            if !seen.insert(sku.clone()) {
+                continue;
+            }
+            let nombre = it.track_name.or(it.collection_name).unwrap_or_default();
+            if nombre.trim().is_empty() {
+                continue;
+            }
+            let precio = it.track_price.or(it.collection_price).unwrap_or(0.0);
+            if precio <= 0.0 {
+                continue;
+            }
+            let artista = it.artist_name.unwrap_or_default();
+            let nombre_full = if artista.is_empty() {
+                nombre
+            } else {
+                format!("{nombre} — {artista}")
+            };
+            let genero = it.primary_genre_name.unwrap_or_default();
+            let desc = it
+                .long_description
+                .or(it.description)
+                .filter(|d| !d.trim().is_empty())
+                .unwrap_or_else(|| {
+                    if genero.is_empty() {
+                        "Producto digital de Apple Store".to_string()
+                    } else {
+                        genero.clone()
+                    }
+                });
+            let foto = it.artwork_url100.map(|u| u.replace("100x100", "600x600"));
+            productos.push(Product {
+                sku: sku.clone(),
+                nombre_es: nombre_full,
+                categoria: cat.to_string(),
+                precio_mxn: precio.round().max(1.0) as u32,
+                descripcion_es: desc,
+                foto_url: foto.into_iter().collect(),
+                politica_devolucion: None,
+                variantes: vec![Variant {
+                    sku,
+                    color: "digital".to_string(),
+                    talla: None,
+                    stock: 999,
+                    precio_mxn: None,
+                    foto_url: vec![],
+                }],
+            });
+        }
+    }
+    if productos.is_empty() {
+        return Err("iTunes: 0 productos".to_string());
+    }
+    Ok(productos)
+}
+
 /// Last-resort fallback when the DB is unreachable: API, else bundled seed JSON.
 fn load_catalog() -> (Catalog, String) {
     let seed = || {
         Catalog::load(Path::new("data/products.json"), Path::new("data/orders.json"))
             .unwrap_or_else(|e| fatal(&format!("catalog seed: {e:#}")))
     };
-    match fetch_catalog_from_api(DEFAULT_CATALOG_API) {
+    let src = std::env::var("CATALOG_API_URL").unwrap_or_else(|_| DEFAULT_CATALOG_API.to_string());
+    match fetch_catalog(&src) {
         Ok(p) if !p.is_empty() => {
             let pedidos = Catalog::load(
                 Path::new("data/products.json"),
