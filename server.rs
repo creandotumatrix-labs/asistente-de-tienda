@@ -178,12 +178,9 @@ fn migrate_and_seed(c: &mut postgres::Client) -> Result<(), String> {
         Err(e) => eprintln!("db: sync catálogo falló ({e}); uso lo que ya hay en la DB"),
     }
 
-    // Seed a few sample orders on first boot (defined in code, not JSON).
-    let ocount: i64 = c
-        .query_one("SELECT count(*) FROM orders", &[])
-        .map_err(|e| e.to_string())?
-        .get(0);
-    if ocount == 0 {
+    // Reset sample orders each boot (demo data, defined in code).
+    let _ = c.batch_execute("DELETE FROM order_items; DELETE FROM orders;");
+    {
         c.batch_execute(
             "INSERT INTO orders VALUES ('10482','Marcus P.','en_camino','2026-06-27','2026-06-28','2026-06-30',NULL,'TRACK-99213',890,'Guadalajara') ON CONFLICT DO NOTHING;\
              INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10482','ALB-001','Alebrije de madera tallado a mano',1);\
@@ -204,6 +201,8 @@ fn sync_products(c: &mut postgres::Client) -> Result<usize, String> {
     if productos.is_empty() {
         return Err("catalogo vacio".to_string());
     }
+    c.execute("DELETE FROM products", &[])
+        .map_err(|e| format!("clear products: {e}"))?;
     for p in &productos {
         let v = &p.variantes[0];
         let foto: Option<&str> = p.foto_url.first().map(String::as_str);
