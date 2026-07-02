@@ -5,7 +5,7 @@ use serde_json::{json, Value};
 
 use super::{str_field, u32_field, AppState, ToolSpec};
 use crate::model::{Product, Variant};
-use crate::util::{contiene, normaliza, todos_los_tokens};
+use crate::util::{contiene_sinonimo, normaliza, todos_los_tokens};
 
 pub fn spec(state: &AppState, enabled: bool) -> ToolSpec {
     let categorias = {
@@ -27,10 +27,10 @@ pub fn spec(state: &AppState, enabled: bool) -> ToolSpec {
         input_schema: json!({
             "type": "object",
             "properties": {
-                "query":     { "type": "string", "description": "Texto libre: nombre o palabras clave del producto (p. ej. 'mochila vortex')." },
+                "query": { "type": "string", "description": "Texto libre: nombre o palabras clave del producto (p. ej. 'mochila vortex')." },
                 "categoria": { "type": "string", "description": "Filtrar por categoría exacta o parcial." },
-                "color":     { "type": "string", "description": "Filtrar por color (p. ej. 'negro')." },
-                "talla":     { "type": "string", "description": "Filtrar por talla (p. ej. 'M' o '27')." },
+                "color": { "type": "string", "description": "Filtrar por color (p. ej. 'negro')." },
+                "talla": { "type": "string", "description": "Filtrar por talla (p. ej. 'M' o '27')." },
                 "max_precio":{ "type": "integer", "description": "Precio máximo en MXN." }
             },
             "additionalProperties": false
@@ -50,13 +50,16 @@ pub fn run(state: &AppState, input: &Value) -> Value {
     let mut resultados = Vec::new();
 
     for p in &state.catalog.productos {
-        // Category filter (accent/case-insensitive substring).
+        // Category filter (accent/case-insensitive substring, with cross-language
+        // synonym fallback so e.g. "bolsas" matches a "Women's Bags" category
+        // that only exists in English in the underlying catalog source).
         if let Some(cat) = &categoria {
-            if !contiene(&p.categoria, cat) {
+            if !contiene_sinonimo(&p.categoria, cat) {
                 continue;
             }
         }
-        // Free-text query: every token must appear in name+description+category.
+        // Free-text query: every token must appear in name+description+category,
+        // literally or via a known synonym (see util::todos_los_tokens).
         if let Some(q) = &query {
             let haystack = format!("{} {} {}", p.nombre_es, p.descripcion_es, p.categoria);
             if !todos_los_tokens(&haystack, q) {
