@@ -120,7 +120,18 @@ SINONIMOS = [
     ["cojin", "cojines", "almohada", "almohadas", "pillow", "pillows", "cushion", "cushions"],
     ["silla", "sillas", "chair", "chairs"],
     ["mesa", "mesas", "table", "tables"],
+    ["mujer", "mujeres", "woman", "women", "womens"],
+    ["hombre", "hombres", "man", "men", "mens"],
+    ["nino", "ninos", "nina", "ninas", "kid", "kids", "child", "children"],
 ]
+
+# Mirrors src/util.rs::STOPWORDS — filler words skipped so a natural phrase
+# like "bolsas de mujer" doesn't fail on the literal, untranslatable "de".
+STOPWORDS = {
+    "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas", "y", "o", "en", "con",
+    "sin", "para", "por", "que", "tienen", "tiene", "tienes", "hay", "algo", "alguna", "algun",
+    "algunos", "algunas",
+}
 
 def sinonimos_de(tok: str) -> list[str]:
     for grupo in SINONIMOS:
@@ -136,7 +147,9 @@ def contiene_sinonimo(haystack: str, needle: str) -> bool:
 
 def todos_los_tokens(haystack: str, query: str) -> bool:
     hay = norm(haystack)
-    for tok in norm(query).split():
+    all_toks = norm(query).split()
+    toks = [t for t in all_toks if t not in STOPWORDS] or all_toks
+    for tok in toks:
         if tok in hay:
             continue
         if not any(alt in hay for alt in sinonimos_de(tok)):
@@ -244,6 +257,8 @@ def main() -> int:
     bolsas = search_products(products, query="bolsas")
     check("busca 'bolsas' (plural) → encuentra TEX-001 (Bolsa bordada, singular)",
           any(p["sku"] == "TEX-001" for p, _ in bolsas))
+    check("todos_los_tokens: 'bolsas de mujer' resuelve producto en inglés (stopword + sinonimo)",
+          todos_los_tokens("Prada Women Bag", "bolsas de mujer"))
 
     print("inventario")
     _, v = variant_by_sku(products, "TAL-002-AZL")
