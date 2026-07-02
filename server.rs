@@ -99,8 +99,7 @@ fn main() {
             (Method::Get, "/admin/resync") => {
                 let out = match db.as_mut() {
                     Some(c) => match sync_products(c) {
-                        Ok(n) => json!({ "synced": n, "source": std::env::var("CATALOG_API_URL")
-                            .unwrap_or_else(|_| DEFAULT_CATALOG_API.to_string()) }),
+                        Ok(n) => json!({ "synced": n, "source": "casa-alebrije" }),
                         Err(e) => json!({ "error": e }),
                     },
                     None => json!({ "error": "sin base de datos" }),
@@ -173,7 +172,7 @@ fn migrate_and_seed(c: &mut postgres::Client) -> Result<(), String> {
     )
     .map_err(|e| format!("migrate: {e}"))?;
 
-    // Sync the catalog from the LIVE product API (upsert) — refreshes price/stock.
+    // Seed/refresh the Casa Alebrije catalog into Postgres.
     match sync_products(c) {
         Ok(n) => eprintln!("db: catálogo sincronizado en vivo ({n} productos)"),
         Err(e) => eprintln!("db: sync catálogo falló ({e}); uso lo que ya hay en la DB"),
@@ -186,12 +185,12 @@ fn migrate_and_seed(c: &mut postgres::Client) -> Result<(), String> {
         .get(0);
     if ocount == 0 {
         c.batch_execute(
-            "INSERT INTO orders VALUES ('10482','Marcus P.','en_camino','2026-06-27','2026-06-28','2026-06-30',NULL,'TRACK-99213',35000,'Guadalajara') ON CONFLICT DO NOTHING;\
-             INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10482','DJ-MBP','Apple MacBook Pro 14 Inch Space Grey',1);\
-             INSERT INTO orders VALUES ('10488','Ana López','entregado','2026-06-16','2026-06-17','2026-06-19','2026-06-20','TRACK-88120',3500,'Ciudad de México') ON CONFLICT DO NOTHING;\
-             INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10488','DJ-NIKE','Nike Air Jordan 1 Red And Black',1);\
-             INSERT INTO orders VALUES ('10455','Valeria Soto','cancelado','2026-06-10',NULL,NULL,NULL,NULL,1890,'Mérida') ON CONFLICT DO NOTHING;\
-             INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10455','DJ-PRADA','Prada Women Bag',1);",
+            "INSERT INTO orders VALUES ('10482','Marcus P.','en_camino','2026-06-27','2026-06-28','2026-06-30',NULL,'TRACK-99213',890,'Guadalajara') ON CONFLICT DO NOTHING;\
+             INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10482','ALB-001','Alebrije de madera tallado a mano',1);\
+             INSERT INTO orders VALUES ('10488','Ana López','entregado','2026-06-16','2026-06-17','2026-06-19','2026-06-20','TRACK-88120',700,'Ciudad de México') ON CONFLICT DO NOTHING;\
+             INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10488','TAL-001','Tazón de Talavera azul (juego de 2)',1);\
+             INSERT INTO orders VALUES ('10455','Valeria Soto','cancelado','2026-06-10',NULL,NULL,NULL,NULL,780,'Mérida') ON CONFLICT DO NOTHING;\
+             INSERT INTO order_items (order_id,sku,nombre,qty) VALUES ('10455','TEX-001','Bolsa bordada a mano de Chiapas',1);",
         )
         .map_err(|e| format!("seed orders: {e}"))?;
         eprintln!("db: sembrados pedidos de ejemplo");
@@ -199,11 +198,12 @@ fn migrate_and_seed(c: &mut postgres::Client) -> Result<(), String> {
     Ok(())
 }
 
-/// Pull the catalog from the live product API (CATALOG_API_URL) and upsert into
-/// Postgres — refreshes price/stock so the DB mirrors the live source.
+/// Seed/refresh the Casa Alebrije catalog into Postgres (upsert).
 fn sync_products(c: &mut postgres::Client) -> Result<usize, String> {
-    let url = std::env::var("CATALOG_API_URL").unwrap_or_else(|_| DEFAULT_CATALOG_API.to_string());
-    let productos = fetch_catalog(&url)?;
+    let productos = fetch_shop_catalog();
+    if productos.is_empty() {
+        return Err("catalogo vacio".to_string());
+    }
     for p in &productos {
         let v = &p.variantes[0];
         let foto: Option<&str> = p.foto_url.first().map(String::as_str);
@@ -334,7 +334,6 @@ struct DjProduct {
     images: Vec<String>,
 }
 
-const DEFAULT_CATALOG_API: &str = "https://dummyjson.com/products?limit=100";
 const FX_USD_MXN: f64 = 17.5;
 
 fn fetch_catalog_from_api(url: &str) -> Result<Vec<Product>, String> {
@@ -385,141 +384,159 @@ fn fetch_catalog_from_api(url: &str) -> Result<Vec<Product>, String> {
         .collect())
 }
 
-/// Route the configured source to the right fetcher.
-fn fetch_catalog(source: &str) -> Result<Vec<Product>, String> {
-    if source.eq_ignore_ascii_case("itunes") {
-        fetch_catalog_itunes()
-    } else {
-        fetch_catalog_from_api(source)
-    }
-}
-
-// ── Apple iTunes Search API (free, no key, real products + real MXN prices) ──
+// -- Mercado Libre (real Mexican marketplace) + DummyJSON fallback -----------
 
 #[derive(Deserialize)]
-struct ItunesResp {
+struct MlResp {
     #[serde(default)]
-    results: Vec<ItunesItem>,
+    results: Vec<MlItem>,
 }
 
 #[derive(Deserialize)]
-struct ItunesItem {
-    #[serde(rename = "trackId", default)]
-    track_id: Option<i64>,
-    #[serde(rename = "collectionId", default)]
-    collection_id: Option<i64>,
-    #[serde(rename = "trackName", default)]
-    track_name: Option<String>,
-    #[serde(rename = "collectionName", default)]
-    collection_name: Option<String>,
-    #[serde(rename = "artistName", default)]
-    artist_name: Option<String>,
-    #[serde(rename = "primaryGenreName", default)]
-    primary_genre_name: Option<String>,
-    #[serde(rename = "trackPrice", default)]
-    track_price: Option<f64>,
-    #[serde(rename = "collectionPrice", default)]
-    collection_price: Option<f64>,
-    #[serde(rename = "artworkUrl100", default)]
-    artwork_url100: Option<String>,
-    #[serde(rename = "longDescription", default)]
-    long_description: Option<String>,
-    #[serde(rename = "description", default)]
-    description: Option<String>,
-    #[serde(rename = "wrapperType", default)]
-    wrapper_type: Option<String>,
+struct MlItem {
+    #[serde(default)]
+    id: Option<String>,
+    #[serde(default)]
+    title: String,
+    #[serde(default)]
+    price: f64,
+    #[serde(rename = "available_quantity", default)]
+    available_quantity: u32,
+    #[serde(default)]
+    thumbnail: Option<String>,
+    #[serde(default)]
+    condition: Option<String>,
 }
 
-/// Build a real catalog from the Mexican Apple Store (prices already in MXN).
-fn fetch_catalog_itunes() -> Result<Vec<Product>, String> {
+/// The Mercado Libre access token, if configured (else None -> DummyJSON fallback).
+fn ml_token() -> Option<String> {
+    std::env::var("ML_ACCESS_TOKEN")
+        .ok()
+        .filter(|s| !s.trim().is_empty() && s != "REPLACE_ME")
+}
+
+/// Search real products on Mercado Libre Mexico (MLM). Prices already in MXN.
+fn fetch_ml(term: &str, categoria: &str, token: &str) -> Vec<Product> {
     let agent = ureq::AgentBuilder::new()
         .timeout_connect(Duration::from_secs(5))
-        .timeout_read(Duration::from_secs(20))
+        .timeout_read(Duration::from_secs(15))
         .build();
-    let queries: [(&str, &str, &str); 8] = [
-        ("top hits", "music", "Pop"),
-        ("rock", "music", "Rock"),
-        ("hip hop", "music", "Hip-Hop/Rap"),
-        ("regional mexicano", "music", "Regional Mexicano"),
-        ("pop latino", "music", "Pop Latino"),
-        ("electronica", "music", "Electrónica"),
-        ("jazz", "music", "Jazz"),
-        ("classical", "music", "Clásica"),
-    ];
-    let mut productos: Vec<Product> = Vec::new();
-    let mut seen: HashSet<String> = HashSet::new();
-    for (term, media, cat) in queries {
-        let q = term.split_whitespace().collect::<Vec<_>>().join("+");
-        let url =
-            format!("https://itunes.apple.com/search?term={q}&media={media}&country=MX&limit=25");
-        let resp: ItunesResp = match agent
-            .get(&url)
-            .call()
-            .map_err(|e| e.to_string())
-            .and_then(|r| r.into_json().map_err(|e| e.to_string()))
-        {
-            Ok(r) => r,
-            Err(_) => continue,
-        };
-        for it in resp.results {
-            let id = match it.track_id.or(it.collection_id) {
-                Some(x) if x != 0 => x,
-                _ => continue,
+    let q: String = term.split_whitespace().collect::<Vec<_>>().join("%20");
+    let url = format!("https://api.mercadolibre.com/sites/MLM/search?q={q}&limit=20");
+    let resp: MlResp = match agent
+        .get(&url)
+        .set("Authorization", &format!("Bearer {token}"))
+        .call()
+        .map_err(|e| e.to_string())
+        .and_then(|r| r.into_json().map_err(|e| e.to_string()))
+    {
+        Ok(r) => r,
+        Err(_) => return Vec::new(),
+    };
+    resp.results
+        .into_iter()
+        .filter_map(|it| {
+            let id = it.id?;
+            if it.title.trim().is_empty() || it.price <= 0.0 {
+                return None;
+            }
+            let foto = it
+                .thumbnail
+                .map(|u| u.replacen("http://", "https://", 1).replace("-I.jpg", "-O.jpg"));
+            let cond = match it.condition.as_deref() {
+                Some("new") => "Nuevo",
+                Some("used") => "Usado",
+                _ => "Artesanal",
             };
-            let sku = format!("AP-{id}");
-            if !seen.insert(sku.clone()) {
-                continue;
-            }
-            let nombre = it.track_name.or(it.collection_name).unwrap_or_default();
-            if nombre.trim().is_empty() {
-                continue;
-            }
-            let precio = it.track_price.or(it.collection_price).unwrap_or(0.0);
-            if precio <= 0.0 {
-                continue;
-            }
-            let artista = it.artist_name.unwrap_or_default();
-            let nombre_full = if artista.is_empty() {
-                nombre
-            } else {
-                format!("{nombre} — {artista}")
-            };
-            let genero = it.primary_genre_name.unwrap_or_default();
-            let desc = it
-                .long_description
-                .or(it.description)
-                .filter(|d| !d.trim().is_empty())
-                .unwrap_or_else(|| {
-                    if genero.is_empty() {
-                        "Producto digital de Apple Store".to_string()
-                    } else {
-                        genero.clone()
-                    }
-                });
-            let foto = it.artwork_url100.map(|u| u.replace("100x100", "600x600"));
-            productos.push(Product {
+            let sku = format!("ML-{id}");
+            Some(Product {
                 sku: sku.clone(),
-                nombre_es: nombre_full,
-                categoria: cat.to_string(),
-                precio_mxn: precio.round().max(1.0) as u32,
-                descripcion_es: desc,
+                nombre_es: it.title,
+                categoria: categoria.to_string(),
+                precio_mxn: it.price.round().max(1.0) as u32,
+                descripcion_es: format!("{cond} - Mercado Libre Mexico"),
                 foto_url: foto.into_iter().collect(),
                 politica_devolucion: None,
                 variantes: vec![Variant {
                     sku,
-                    color: "digital".to_string(),
+                    color: "estandar".to_string(),
                     talla: None,
-                    stock: 999,
+                    stock: it.available_quantity.max(1),
                     precio_mxn: None,
                     foto_url: vec![],
                 }],
-            });
+            })
+        })
+        .collect()
+}
+
+const ML_SEED_TERMS: [(&str, &str); 10] = [
+    ("talavera artesanal", "Talavera"),
+    ("alebrije madera", "Alebrijes"),
+    ("artesania mexicana", "Artesanias"),
+    ("bordado oaxaca", "Textiles"),
+    ("barro negro oaxaca", "Barro"),
+    ("vela artesanal", "Velas"),
+    ("joyeria plata taxco", "Joyeria"),
+    ("catrina decoracion", "Decoracion"),
+    ("papel picado", "Decoracion"),
+    ("hamaca artesanal", "Textiles"),
+];
+
+const GIFT_CATEGORIES: [&str; 8] = [
+    "home-decoration",
+    "furniture",
+    "kitchen-accessories",
+    "fragrances",
+    "beauty",
+    "womens-jewellery",
+    "womens-bags",
+    "sunglasses",
+];
+
+/// Build the shop catalog: Mercado Libre (Mexican) if a token is set, else the
+/// free DummyJSON gift/home categories (real API, no key) as a fallback.
+fn fetch_shop_catalog() -> Vec<Product> {
+    let mut productos: Vec<Product> = Vec::new();
+    let mut seen: HashSet<String> = HashSet::new();
+    if let Some(token) = ml_token() {
+        for (term, cat) in ML_SEED_TERMS {
+            for p in fetch_ml(term, cat, &token) {
+                if seen.insert(p.sku.clone()) {
+                    productos.push(p);
+                }
+            }
         }
     }
     if productos.is_empty() {
-        return Err("iTunes: 0 productos".to_string());
+        for cat in GIFT_CATEGORIES {
+            let url = format!("https://dummyjson.com/products/category/{cat}");
+            if let Ok(ps) = fetch_catalog_from_api(&url) {
+                for p in ps {
+                    if seen.insert(p.sku.clone()) {
+                        productos.push(p);
+                    }
+                }
+            }
+        }
     }
-    Ok(productos)
+    productos
+}
+
+/// Live search on the shopper's terms (Mercado Libre, else DummyJSON search).
+fn fetch_shop_query(term: &str) -> Vec<Product> {
+    if term.trim().is_empty() {
+        return Vec::new();
+    }
+    if let Some(token) = ml_token() {
+        let r = fetch_ml(term, "Busqueda", &token);
+        if !r.is_empty() {
+            return r;
+        }
+    }
+    let q: String = term.split_whitespace().collect::<Vec<_>>().join("%20");
+    let url = format!("https://dummyjson.com/products/search?q={q}&limit=16");
+    fetch_catalog_from_api(&url).unwrap_or_default()
 }
 
 /// Pull meaningful search keywords out of a user message (drop stopwords).
@@ -551,113 +568,13 @@ fn keywords(msg: &str) -> String {
     out.join(" ")
 }
 
-/// Live Apple/iTunes MUSIC search for the user's terms — returns real songs AND
-/// albums (with cover art + native MXN prices) straight from Apple. This is the
-/// store's only source of product truth; nothing about a title is invented.
-fn fetch_itunes_query(term: &str) -> Vec<Product> {
-    let mut out: Vec<Product> = Vec::new();
-    if term.trim().is_empty() {
-        return out;
-    }
-    let agent = ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(4))
-        .timeout_read(Duration::from_secs(14))
-        .build();
-    let q = term.split_whitespace().collect::<Vec<_>>().join("+");
-    // Ask Apple explicitly for MUSIC: albums first, then songs (MX store => MXN).
-    let urls = [
-        format!("https://itunes.apple.com/search?term={q}&country=MX&media=music&entity=album&limit=12"),
-        format!("https://itunes.apple.com/search?term={q}&country=MX&media=music&entity=song&limit=16"),
-    ];
-    let mut seen: HashSet<String> = HashSet::new();
-    for url in urls {
-        let resp: ItunesResp = match agent
-            .get(&url)
-            .call()
-            .map_err(|e| e.to_string())
-            .and_then(|r| r.into_json().map_err(|e| e.to_string()))
-        {
-            Ok(r) => r,
-            Err(_) => continue,
-        };
-        for it in resp.results {
-            let es_album = it.wrapper_type.as_deref() == Some("collection");
-            let id = match (if es_album { it.collection_id } else { it.track_id }).or(it.collection_id)
-            {
-                Some(x) if x != 0 => x,
-                _ => continue,
-            };
-            let sku = format!("AP-{id}");
-            if !seen.insert(sku.clone()) {
-                continue;
-            }
-            let nombre = if es_album {
-                it.collection_name.clone()
-            } else {
-                it.track_name.clone()
-            };
-            let nombre = match nombre {
-                Some(n) if !n.trim().is_empty() => n,
-                _ => continue,
-            };
-            // Real Apple price: album => collectionPrice, song => trackPrice.
-            // Album-only songs (trackPrice <= 0) are skipped; the album carries them.
-            let precio = match if es_album { it.collection_price } else { it.track_price } {
-                Some(p) if p > 0.0 => p,
-                _ => continue,
-            };
-            let artista = it.artist_name.clone().unwrap_or_default();
-            let genero = it.primary_genre_name.clone().unwrap_or_default();
-            let tipo = if es_album { "Álbum" } else { "Canción" };
-            let nombre_full = if artista.is_empty() {
-                nombre
-            } else {
-                format!("{nombre} — {artista}")
-            };
-            let desc = if genero.is_empty() {
-                format!("{tipo} · Apple Music")
-            } else {
-                format!("{tipo} · {genero} · Apple Music")
-            };
-            let categoria = if genero.is_empty() {
-                tipo.to_string()
-            } else {
-                format!("{tipo} · {genero}")
-            };
-            let foto = it
-                .artwork_url100
-                .clone()
-                .map(|u| u.replace("100x100", "600x600"));
-            out.push(Product {
-                sku: sku.clone(),
-                nombre_es: nombre_full,
-                categoria,
-                precio_mxn: precio.round().max(1.0) as u32,
-                descripcion_es: desc,
-                foto_url: foto.into_iter().collect(),
-                politica_devolucion: None,
-                variantes: vec![Variant {
-                    sku,
-                    color: "digital".to_string(),
-                    talla: None,
-                    stock: 999,
-                    precio_mxn: None,
-                    foto_url: vec![],
-                }],
-            });
-        }
-    }
-    out
-}
-
 /// Last-resort fallback when the DB is unreachable: API, else bundled seed JSON.
 fn load_catalog() -> (Catalog, String) {
     let seed = || {
         Catalog::load(Path::new("data/products.json"), Path::new("data/orders.json"))
             .unwrap_or_else(|e| fatal(&format!("catalog seed: {e:#}")))
     };
-    let src = std::env::var("CATALOG_API_URL").unwrap_or_else(|_| DEFAULT_CATALOG_API.to_string());
-    match fetch_catalog(&src) {
+    match Ok::<Vec<Product>, String>(fetch_shop_catalog()) {
         Ok(p) if !p.is_empty() => {
             let pedidos = Catalog::load(
                 Path::new("data/products.json"),
@@ -735,15 +652,9 @@ fn handle_chat(
         Some(m) if !m.trim().is_empty() => m.to_string(),
         _ => return respond_json(req, 400, &json!({ "error": "falta 'mensaje'" }).to_string()),
     };
-    let lang = parsed.get("lang").and_then(Value::as_str).unwrap_or("es");
-    let prompt_msg = if lang.eq_ignore_ascii_case("en") {
-        format!(
-            "[Reply in English. The catalog is in Spanish — keep product names, prices, \
-             SKUs and tracking codes exactly as given.]\n\n{mensaje}"
-        )
-    } else {
-        mensaje.clone()
-    };
+    // Language is auto-detected by the agent (persona rule): it replies in the
+    // same language the customer writes in, regardless of the UI toggle.
+    let prompt_msg = mensaje.clone();
 
     let client = match Client::from_env() {
         Ok(c) => c,
@@ -756,9 +667,8 @@ fn handle_chat(
         }
     };
 
-    // Real per-request data call: load catalog + orders from Postgres, then
-    // augment with a LIVE iTunes search on the user's terms so any real Apple
-    // product is findable — not just the pre-synced subset.
+    // Real per-request data call: load the catalog + orders from Postgres, then
+    // augment with a live search on the user's terms so any real product resolves.
     let kw = keywords(&mensaje);
     let live = db
         .as_mut()
@@ -768,7 +678,7 @@ fn handle_chat(
             if kw.len() >= 3 {
                 let existentes: HashSet<String> =
                     cat.productos.iter().map(|p| p.sku.clone()).collect();
-                for p in fetch_itunes_query(&kw) {
+                for p in fetch_shop_query(&kw) {
                     if !existentes.contains(&p.sku) {
                         cat.productos.push(p);
                     }
@@ -986,9 +896,9 @@ fn fatal(msg: &str) -> ! {
 fn index_html(nombre: &str) -> String {
     const HTML: &str = r##"<!doctype html><html lang="es" id="html"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>__NOMBRE__ · Música con IA</title>
+<title>__NOMBRE__ · Regalos con IA</title>
 <style>
-:root{--am1:#fb2c6b;--am2:#9b5cff;--am3:#ff6a8b;--bg:#08070d;--ink:#f4f0f7;--muted:#a99fb6;--line:rgba(255,255,255,.09);--glass:rgba(255,255,255,.05)}
+:root{--am1:#e0592a;--am2:#c02f6b;--am3:#f2a71b;--bg:#08070d;--ink:#f4f0f7;--muted:#a99fb6;--line:rgba(255,255,255,.09);--glass:rgba(255,255,255,.05)}
 *{box-sizing:border-box}
 html{height:100%}
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
@@ -1053,7 +963,7 @@ button.send:disabled{opacity:.5}
 </style></head><body>
 <div class="app">
 <header>
-  <div class="brand"><span class="logo">♪</span><div style="min-width:0"><h1>__NOMBRE__</h1><div class="sub" id="sub"></div></div></div>
+  <div class="brand"><span class="logo">🪅</span><div style="min-width:0"><h1>__NOMBRE__</h1><div class="sub" id="sub"></div></div></div>
   <div class="seg"><button id="bes" class="on">ES</button><button id="ben">EN</button></div>
 </header>
 <main><div id="log"><div class="empty" id="empty"></div></div></main>
@@ -1061,26 +971,26 @@ button.send:disabled{opacity:.5}
 <button class="more" onclick="document.getElementById('info').scrollIntoView({behavior:'smooth'})">▾ ¿Qué es esto? · what is this?</button>
 </div>
 <section class="info" id="info"><div class="iwrap">
-<div class="ikick">About this store</div>
-<h2>Georges Apple Music Reseller — a virtual music store, run by AI</h2>
-<p class="lead">There's no catalog to browse. You just <b>chat with the assistant above</b> — ask for any artist, song, or album and it searches <b>Apple's music catalog live</b>, then shows the real title, the <b>album cover</b>, and the price in <b>Mexican pesos (MXN)</b>, with a checkout link. Every detail comes straight from Apple — it never makes up a song, a price, or an album.</p>
+<div class="ikick">Sobre la tienda · About</div>
+<h2>Casa Alebrije — regalos y artesanías mexicanas, con IA</h2>
+<p class="lead">No tienes que navegar un catálogo. Solo <b>platica con el asistente</b> — pídele talavera, alebrijes, textiles bordados, velas o decoración, y responde desde un <b>catálogo real</b> con foto, precio en <b>pesos (MXN)</b> y costo de envío. Nunca inventa un producto que no existe en inventario.</p>
 <div class="steps">
-  <div class="step2"><div class="n">01</div><div class="st">💬</div><h3>Ask for anything</h3><p>Type an artist, song, or album — in English or Spanish. Here on the web, or over WhatsApp.</p></div>
-  <div class="step2"><div class="n">02</div><div class="st">🍎</div><h3>It searches Apple live</h3><p>The AI queries Apple's catalog in real time — songs and albums, Mexican store, so prices come back in MXN.</p></div>
-  <div class="step2"><div class="n">03</div><div class="st">🛒</div><h3>Real results + checkout</h3><p>You get real titles with cover art and price, then a secure link to buy.</p></div>
+  <div class="step2"><div class="n">01</div><div class="st">💬</div><h3>Pide lo que buscas</h3><p>Un regalo, una artesanía o una categoría — en español o inglés, aquí o por WhatsApp.</p></div>
+  <div class="step2"><div class="n">02</div><div class="st">🎁</div><h3>Revisa el catálogo real</h3><p>El agente consulta el catálogo y las existencias con datos reales — nada inventado.</p></div>
+  <div class="step2"><div class="n">03</div><div class="st">🛒</div><h3>Foto, precio y envío</h3><p>Te da la foto, el precio en MXN, una cotización de envío y un link de pago seguro.</p></div>
 </div>
 <div class="feats">
-  <div class="feat"><span class="fi">🍎</span><div><b>Apple is the source of truth</b><span>Titles, prices and covers are pulled live from Apple — never from the model's memory.</span></div></div>
-  <div class="feat"><span class="fi">💿</span><div><b>Songs &amp; albums</b><span>Buy a single track or a full album, each with its real price.</span></div></div>
-  <div class="feat"><span class="fi">🖼️</span><div><b>Real cover art</b><span>Every result shows its actual album artwork from Apple's CDN.</span></div></div>
-  <div class="feat"><span class="fi">🛡️</span><div><b>Zero hallucination</b><span>If Apple returns nothing, it says so — no invented catalog. Guardrails enforced in code.</span></div></div>
+  <div class="feat"><span class="fi">📦</span><div><b>Catálogo real</b><span>Productos reales con foto, precio y existencias — no datos inventados.</span></div></div>
+  <div class="feat"><span class="fi">🚚</span><div><b>Envío y devoluciones</b><span>Cotiza envío por zona y gestiona devoluciones dentro de la política.</span></div></div>
+  <div class="feat"><span class="fi">🌎</span><div><b>Bilingüe siempre</b><span>Funciona en español e inglés; responde en el idioma en que escribes.</span></div></div>
+  <div class="feat"><span class="fi">🛡️</span><div><b>Cero alucinaciones</b><span>Si algo no está en el catálogo, lo dice. Las reglas viven en el código.</span></div></div>
 </div>
-<div class="tech">Built in Rust with an Anthropic tool-use loop over Apple's iTunes catalog · bilingual es-MX / English · WhatsApp + web · a demo by Marcus Patman, AdventureWave Labs. Not affiliated with Apple Inc.</div>
+<div class="tech">Rust + Anthropic tool-use + Postgres · WhatsApp + web · es-MX / EN · un demo de Marcus Patman — AdventureWave Labs / CreandoTuMatrix.</div>
 </div></section>
 <script>
 const I18N={
-  es:{lang:'es',sub:'Música de Apple · con IA',ph:'busca un artista, canción o álbum…',none:'(sin respuesta)',hi:'Tu música de Apple, con IA.',lead:'Pídeme cualquier artista, canción o álbum. Lo busco en vivo en Apple con su portada y precio.',chips:['The Beatles','Bad Bunny','Café Tacvba','Coldplay']},
-  en:{lang:'en',sub:'Apple Music · AI-powered',ph:'search an artist, song or album…',none:'(no reply)',hi:'Your Apple Music, powered by AI.',lead:'Ask me for any artist, song or album. I search Apple live and show real cover art and price.',chips:['The Beatles','Taylor Swift','Daft Punk','Coldplay']}
+  es:{lang:'es',sub:'Regalos y artesanías · con IA',ph:'busca un regalo o artesanía…',none:'(sin respuesta)',hi:'Regalos y artesanías mexicanas, con IA.',lead:'Pídeme talavera, alebrijes, textiles bordados, velas o decoración. Busco en el catálogo y te muestro foto, precio y envío.',chips:['Talavera','Alebrijes','Regalo de boda','Velas']},
+  en:{lang:'en',sub:'Gifts & crafts · AI-powered',ph:'search a gift or craft…',none:'(no reply)',hi:'Mexican gifts & crafts, AI-powered.',lead:'Ask for talavera, alebrijes, embroidered textiles, candles or décor. I search the catalog and show a photo, price and shipping.',chips:['Talavera','Alebrijes','Wedding gift','Candles']}
 };
 const $=id=>document.getElementById(id);
 const main=document.querySelector('main');
