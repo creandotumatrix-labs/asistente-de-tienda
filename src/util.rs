@@ -61,6 +61,11 @@ const SINONIMOS: &[&[&str]] = &[
     &["mujer", "mujeres", "woman", "women", "womens"],
     &["hombre", "hombres", "man", "men", "mens"],
     &["nino", "ninos", "nina", "ninas", "kid", "kids", "child", "children"],
+    // "lentes de sol" / "gafas de sol" → sunglasses: "sol" needs its own
+    // mapping since "sunglasses" contains "sun" as a literal substring.
+    &["sol", "sun"],
+    &["regalo", "regalos", "gift", "gifts"],
+    &["artesania", "artesanias", "craft", "crafts", "handmade", "handcraft", "handcrafted"],
 ];
 
 /// Returns the normalized `tok` plus any known cross-language / singular-plural
@@ -195,5 +200,13 @@ mod tests {
         // gendered qualifier) must still resolve an English-sourced product.
         assert!(todos_los_tokens("Prada Women Bag", "bolsas de mujer"));
         assert!(todos_los_tokens("Women's Bags", "bolsas mujer"));
+    }
+
+    #[test]
+    fn sinonimos_lentes_de_sol() {
+        // Real production repro: "lentes de sol" missed "Sunglasses" because
+        // "sol" had no synonym and isn't a literal substring on its own.
+        assert!(todos_los_tokens("Classic Sunglasses", "lentes de sol"));
+        assert!(todos_los_tokens("Blue Sunglasses", "gafas de sol"));
     }
 }
