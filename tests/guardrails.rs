@@ -45,6 +45,25 @@ fn search_unknown_product_is_empty_not_fabricated() {
     assert!(r["resultados"].as_array().unwrap().is_empty());
 }
 
+#[test]
+fn search_plural_query_matches_singular_product_name() {
+    // Real bug: "bolsas" (plural) used to miss "Bolsa bordada a mano de
+    // Chiapas" (singular) on a literal substring match. Also covers the
+    // cross-language case (Spanish query vs. an English-sourced fallback
+    // catalog, e.g. DummyJSON when Mercado Libre isn't configured) via the
+    // same synonym table (see util::todos_los_tokens).
+    let st = state();
+    let r = dispatch(&st, "search_products", &json!({ "query": "bolsas" }));
+    assert!(r["total"].as_u64().unwrap() >= 1, "esperaba encontrar TEX-001");
+    let skus: Vec<&str> = r["resultados"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|p| p["sku"].as_str().unwrap())
+        .collect();
+    assert!(skus.contains(&"TEX-001"), "skus={skus:?}");
+}
+
 // ── Inventory ───────────────────────────────────────────────────────────────
 
 #[test]

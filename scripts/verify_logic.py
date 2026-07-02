@@ -91,14 +91,66 @@ def norm(s: str) -> str:
     s = "".join(c for c in s if not unicodedata.combining(c))
     return s.lower().strip()
 
+# Mirrors src/util.rs::SINONIMOS — bilingual / singular-plural synonym groups
+# so a Spanish query still matches product text sourced in English (e.g. the
+# DummyJSON fallback catalog used when Mercado Libre isn't configured), and
+# plural/singular forms ("bolsas" vs "bolsa") don't silently miss a real hit.
+SINONIMOS = [
+    ["bolsa", "bolsas", "bag", "bags", "backpack", "backpacks", "mochila", "mochilas",
+     "purse", "purses", "handbag", "handbags"],
+    ["lente", "lentes", "gafas", "anteojos", "sunglasses", "glasses"],
+    ["perfume", "perfumes", "fragancia", "fragancias", "fragrance", "fragrances", "colonia"],
+    ["joyeria", "joya", "joyas", "jewellery", "jewelry", "jewel", "jewels"],
+    ["collar", "collares", "necklace", "necklaces"],
+    ["arete", "aretes", "pendiente", "pendientes", "earring", "earrings"],
+    ["anillo", "anillos", "ring", "rings"],
+    ["pulsera", "pulseras", "bracelet", "bracelets"],
+    ["mueble", "muebles", "furniture"],
+    ["cocina", "kitchen"],
+    ["belleza", "beauty", "cosmetico", "cosmeticos", "cosmetic", "cosmetics"],
+    ["decoracion", "decoration", "decor"],
+    ["hogar", "casa", "home"],
+    ["vela", "velas", "candle", "candles"],
+    ["lampara", "lamparas", "lamp", "lamps"],
+    ["maceta", "macetas", "planta", "plantas", "plant", "plants", "pot", "pots", "flowerpot"],
+    ["marco", "marcos", "frame", "frames"],
+    ["columpio", "columpios", "swing", "swings"],
+    ["espejo", "espejos", "mirror", "mirrors"],
+    ["cortina", "cortinas", "curtain", "curtains"],
+    ["cojin", "cojines", "almohada", "almohadas", "pillow", "pillows", "cushion", "cushions"],
+    ["silla", "sillas", "chair", "chairs"],
+    ["mesa", "mesas", "table", "tables"],
+]
+
+def sinonimos_de(tok: str) -> list[str]:
+    for grupo in SINONIMOS:
+        if tok in grupo:
+            return grupo
+    return []
+
+def contiene_sinonimo(haystack: str, needle: str) -> bool:
+    hay, n = norm(haystack), norm(needle)
+    if n in hay:
+        return True
+    return any(alt in hay for alt in sinonimos_de(n))
+
+def todos_los_tokens(haystack: str, query: str) -> bool:
+    hay = norm(haystack)
+    for tok in norm(query).split():
+        if tok in hay:
+            continue
+        if not any(alt in hay for alt in sinonimos_de(tok)):
+            return False
+    return True
+
 def search_products(products, query=None, color=None, talla=None, categoria=None, max_precio=None):
     out = []
     for p in products:
-        if categoria and norm(categoria) not in norm(p["categoria"]):
+        if categoria and not contiene_sinonimo(p["categoria"], categoria):
             continue
         if query:
-            hay = norm(f"{p['nombre_es']} {p['descripcion_es']} {p['categoria']}")
-            if not all(tok in hay for tok in norm(query).split()):
+            hay = f"{p['nombre_es']} {p['descripcion_es']} {p['categoria']}"
+            if not todos_los_tokens(hay, query):
                 continue
         matched = []
         for v in p["variantes"]:
@@ -189,6 +241,9 @@ def main() -> int:
           and [v["sku"] for v in res[0][1]] == ["TAL-002-AZL"])
     check("producto inexistente → 0 resultados (sin alucinar)",
           len(search_products(products, query="dron submarino nuclear")) == 0)
+    bolsas = search_products(products, query="bolsas")
+    check("busca 'bolsas' (plural) → encuentra TEX-001 (Bolsa bordada, singular)",
+          any(p["sku"] == "TEX-001" for p, _ in bolsas))
 
     print("inventario")
     _, v = variant_by_sku(products, "TAL-002-AZL")

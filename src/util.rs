@@ -23,12 +23,78 @@ pub fn contiene(haystack: &str, needle: &str) -> bool {
     normaliza(haystack).contains(&normaliza(needle))
 }
 
-/// All whitespace-separated tokens of `query` are present in `haystack`.
-/// Used for grounded product search ("mochila vortex" → both words must hit).
+/// Small bilingual/singular-plural synonym groups so a Spanish query still
+/// matches product text sourced in English (e.g. the DummyJSON fallback
+/// catalog used when Mercado Libre isn't configured), and so plural/singular
+/// forms ("bolsas" vs "bolsa") don't silently miss a real, in-catalog hit.
+/// Each inner slice is a set of interchangeable terms — matching ANY one of
+/// them against the haystack counts as a hit for the whole group.
+const SINONIMOS: &[&[&str]] = &[
+    &[
+        "bolsa", "bolsas", "bag", "bags", "backpack", "backpacks", "mochila", "mochilas",
+        "purse", "purses", "handbag", "handbags",
+    ],
+    &["lente", "lentes", "gafas", "anteojos", "sunglasses", "glasses"],
+    &["perfume", "perfumes", "fragancia", "fragancias", "fragrance", "fragrances", "colonia"],
+    &["joyeria", "joya", "joyas", "jewellery", "jewelry", "jewel", "jewels"],
+    &["collar", "collares", "necklace", "necklaces"],
+    &["arete", "aretes", "pendiente", "pendientes", "earring", "earrings"],
+    &["anillo", "anillos", "ring", "rings"],
+    &["pulsera", "pulseras", "bracelet", "bracelets"],
+    &["mueble", "muebles", "furniture"],
+    &["cocina", "kitchen"],
+    &["belleza", "beauty", "cosmetico", "cosmeticos", "cosmetic", "cosmetics"],
+    &["decoracion", "decoration", "decor"],
+    &["hogar", "casa", "home"],
+    &["vela", "velas", "candle", "candles"],
+    &["lampara", "lamparas", "lamp", "lamps"],
+    &["maceta", "macetas", "planta", "plantas", "plant", "plants", "pot", "pots", "flowerpot"],
+    &["marco", "marcos", "frame", "frames"],
+    &["columpio", "columpios", "swing", "swings"],
+    &["espejo", "espejos", "mirror", "mirrors"],
+    &["cortina", "cortinas", "curtain", "curtains"],
+    &[
+        "cojin", "cojines", "almohada", "almohadas", "pillow", "pillows", "cushion", "cushions",
+    ],
+    &["silla", "sillas", "chair", "chairs"],
+    &["mesa", "mesas", "table", "tables"],
+];
+
+/// Returns the normalized `tok` plus any known cross-language / singular-plural
+/// synonyms, so callers can check a haystack against every interchangeable form.
+pub fn sinonimos_de(tok: &str) -> Vec<&'static str> {
+    for grupo in SINONIMOS {
+        if grupo.contains(&tok) {
+            return grupo.to_vec();
+        }
+    }
+    Vec::new()
+}
+
+/// Like `contiene`, but a miss on the literal term also tries its known
+/// synonyms before giving up (e.g. needle "bolsas" also tries "bag", "backpack").
+pub fn contiene_sinonimo(haystack: &str, needle: &str) -> bool {
+    let hay = normaliza(haystack);
+    let n = normaliza(needle);
+    if hay.contains(&n) {
+        return true;
+    }
+    sinonimos_de(&n).iter().any(|alt| hay.contains(*alt))
+}
+
+/// All whitespace-separated tokens of `query` are present in `haystack`,
+/// where a token may match literally OR via a known synonym. Used for
+/// grounded product search ("mochila vortex" → both words must hit;
+/// "bolsas" also hits a haystack that only says "bolsa" or "bag").
 pub fn todos_los_tokens(haystack: &str, query: &str) -> bool {
     let hay = normaliza(haystack);
     let q = normaliza(query);
-    q.split_whitespace().all(|tok| hay.contains(tok))
+    q.split_whitespace().all(|tok| {
+        if hay.contains(tok) {
+            return true;
+        }
+        sinonimos_de(tok).iter().any(|alt| hay.contains(*alt))
+    })
 }
 
 /// Deterministic short id (FNV-1a → base36, 6 chars). Same input → same id,
@@ -64,7 +130,7 @@ mod tests {
     #[test]
     fn normaliza_quita_acentos() {
         assert_eq!(normaliza("Mérida"), "merida");
-        assert_eq!(normaliza("  CAFÉ Ñandú "), "cafe nandu");
+        assert_eq!(normaliza(" CAFÉ Ñandú "), "cafe nandu");
     }
 
     #[test]
@@ -77,5 +143,26 @@ mod tests {
     fn hash_estable() {
         assert_eq!(hash_corto("abc"), hash_corto("abc"));
         assert_eq!(hash_corto("abc").len(), 6);
+    }
+
+    #[test]
+    fn sinonimos_cruzan_idioma() {
+        // Spanish query hits an English-only haystack (DummyJSON-style fallback data).
+        assert!(todos_los_tokens("Prada Women Bag", "bolsas"));
+        assert!(todos_los_tokens("White Faux Leather Backpack", "bolsa"));
+        assert!(!todos_los_tokens("Table Lamp", "bolsas"));
+    }
+
+    #[test]
+    fn sinonimos_singular_plural() {
+        // Plural query still hits a singular product name in the real catalog.
+        assert!(todos_los_tokens("Bolsa bordada a mano de Chiapas", "bolsas"));
+    }
+
+    #[test]
+    fn contiene_sinonimo_categoria() {
+        assert!(contiene_sinonimo("Women's Bags", "bolsas"));
+        assert!(contiene_sinonimo("Sunglasses", "lentes"));
+        assert!(!contiene_sinonimo("Kitchen Accessories", "bolsas"));
     }
 }
