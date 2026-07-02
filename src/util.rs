@@ -58,6 +58,9 @@ const SINONIMOS: &[&[&str]] = &[
     ],
     &["silla", "sillas", "chair", "chairs"],
     &["mesa", "mesas", "table", "tables"],
+    &["mujer", "mujeres", "woman", "women", "womens"],
+    &["hombre", "hombres", "man", "men", "mens"],
+    &["nino", "ninos", "nina", "ninas", "kid", "kids", "child", "children"],
 ];
 
 /// Returns the normalized `tok` plus any known cross-language / singular-plural
@@ -82,14 +85,34 @@ pub fn contiene_sinonimo(haystack: &str, needle: &str) -> bool {
     sinonimos_de(&n).iter().any(|alt| hay.contains(*alt))
 }
 
-/// All whitespace-separated tokens of `query` are present in `haystack`,
-/// where a token may match literally OR via a known synonym. Used for
-/// grounded product search ("mochila vortex" → both words must hit;
-/// "bolsas" also hits a haystack that only says "bolsa" or "bag").
+/// Filler words that carry no product-matching signal on their own (Spanish
+/// articles/prepositions/conjunctions plus a few common verbs from casual
+/// questions like "tienen X de Y"). Skipped so a natural phrase like "bolsas
+/// de mujer" doesn't fail on the literal, untranslatable "de".
+const STOPWORDS: &[&str] = &[
+    "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas", "y", "o", "en", "con",
+    "sin", "para", "por", "que", "tienen", "tiene", "tienes", "hay", "algo", "alguna", "algun",
+    "algunos", "algunas",
+];
+
+/// All non-stopword, whitespace-separated tokens of `query` are present in
+/// `haystack`, where a token may match literally OR via a known synonym.
+/// Used for grounded product search ("mochila vortex" → both words must hit;
+/// "bolsas" also hits a haystack that only says "bolsa" or "bag"; "bolsas de
+/// mujer" skips "de" and still requires "bolsas" and "mujer" to resolve).
 pub fn todos_los_tokens(haystack: &str, query: &str) -> bool {
     let hay = normaliza(haystack);
     let q = normaliza(query);
-    q.split_whitespace().all(|tok| {
+    let mut toks: Vec<&str> = q
+        .split_whitespace()
+        .filter(|t| !STOPWORDS.contains(t))
+        .collect();
+    // If the query was ONLY stopwords, fall back to the raw tokens rather
+    // than vacuously matching every product.
+    if toks.is_empty() {
+        toks = q.split_whitespace().collect();
+    }
+    toks.iter().all(|tok| {
         if hay.contains(tok) {
             return true;
         }
@@ -164,5 +187,13 @@ mod tests {
         assert!(contiene_sinonimo("Women's Bags", "bolsas"));
         assert!(contiene_sinonimo("Sunglasses", "lentes"));
         assert!(!contiene_sinonimo("Kitchen Accessories", "bolsas"));
+    }
+
+    #[test]
+    fn sinonimos_frase_completa() {
+        // Real production repro: "bolsas de mujer" (multi-token, includes a
+        // gendered qualifier) must still resolve an English-sourced product.
+        assert!(todos_los_tokens("Prada Women Bag", "bolsas de mujer"));
+        assert!(todos_los_tokens("Women's Bags", "bolsas mujer"));
     }
 }
