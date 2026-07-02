@@ -7,10 +7,10 @@
 //! unreachable, so the service always boots.
 //!
 //! Endpoints:
-//!   GET  /health   -> liveness + catalog source/counts + db status
-//!   GET  /         -> bilingual (ES/EN) WhatsApp-style chat UI
-//!   GET  /history  -> last chat turns persisted in Postgres
-//!   POST /chat     -> { "mensaje": "...", "lang": "es"|"en" } -> drives the agent
+//! GET /health -> liveness + catalog source/counts + db status
+//! GET / -> bilingual (ES/EN) WhatsApp-style chat UI
+//! GET /history -> last chat turns persisted in Postgres
+//! POST /chat -> { "mensaje": "...", "lang": "es"|"en" } -> drives the agent
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -212,9 +212,9 @@ fn sync_products(c: &mut postgres::Client) -> Result<usize, String> {
             "INSERT INTO products (sku,nombre,categoria,precio_mxn,descripcion,stock,color,talla,foto_url) \
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) \
              ON CONFLICT (sku) DO UPDATE SET \
-                nombre=EXCLUDED.nombre, categoria=EXCLUDED.categoria, precio_mxn=EXCLUDED.precio_mxn, \
-                descripcion=EXCLUDED.descripcion, stock=EXCLUDED.stock, color=EXCLUDED.color, \
-                talla=EXCLUDED.talla, foto_url=EXCLUDED.foto_url",
+             nombre=EXCLUDED.nombre, categoria=EXCLUDED.categoria, precio_mxn=EXCLUDED.precio_mxn, \
+             descripcion=EXCLUDED.descripcion, stock=EXCLUDED.stock, color=EXCLUDED.color, \
+             talla=EXCLUDED.talla, foto_url=EXCLUDED.foto_url",
             &[
                 &p.sku, &p.nombre_es, &p.categoria, &precio, &p.descripcion_es, &stock,
                 &v.color, &talla, &foto,
@@ -492,8 +492,23 @@ const GIFT_CATEGORIES: [&str; 8] = [
     "sunglasses",
 ];
 
-/// Build the shop catalog: Mercado Libre (Mexican) if a token is set, else the
-/// free DummyJSON gift/home categories (real API, no key) as a fallback.
+/// Load the curated Casa Alebrije catalog bundled in the repo (data/products.json).
+/// This is the brand's real, on-theme inventory (talavera, alebrijes, textiles,
+/// velas, joyería, barro, decoración, regalos) — matches the landing page and the
+/// product names customers actually ask for.
+fn fetch_local_catalog() -> Vec<Product> {
+    Catalog::load(Path::new("data/products.json"), Path::new("data/orders.json"))
+        .map(|c| c.productos)
+        .unwrap_or_default()
+}
+
+/// Build the shop catalog. Preference order:
+/// 1. Mercado Libre (real Mexican marketplace) if ML_ACCESS_TOKEN is configured.
+/// 2. The curated Casa Alebrije catalog bundled in the repo (on-brand, matches
+///    the landing page's talavera/alebrijes/velas promise).
+/// 3. DummyJSON's generic gift categories, only if the bundled catalog is somehow
+///    missing/unreadable — an off-brand but functional last resort so the demo
+///    still has *some* inventory rather than none.
 fn fetch_shop_catalog() -> Vec<Product> {
     let mut productos: Vec<Product> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
@@ -507,6 +522,10 @@ fn fetch_shop_catalog() -> Vec<Product> {
         }
     }
     if productos.is_empty() {
+        let local = fetch_local_catalog();
+        if !local.is_empty() {
+            return local;
+        }
         for cat in GIFT_CATEGORIES {
             let url = format!("https://dummyjson.com/products/category/{cat}");
             if let Ok(ps) = fetch_catalog_from_api(&url) {
@@ -521,20 +540,21 @@ fn fetch_shop_catalog() -> Vec<Product> {
     productos
 }
 
-/// Live search on the shopper's terms (Mercado Libre, else DummyJSON search).
+/// Live search on the shopper's terms, to augment the base catalog with any
+/// real product the base catalog doesn't carry. Only queries Mercado Libre
+/// (when configured) — deliberately does NOT fall back to DummyJSON search,
+/// since that would inject generic English housewares into an otherwise
+/// curated, on-brand Spanish catalog and break the "never invents anything"
+/// promise the storefront makes. Without an ML token, matching within the
+/// curated catalog relies on util::todos_los_tokens's synonym/stopword logic.
 fn fetch_shop_query(term: &str) -> Vec<Product> {
     if term.trim().is_empty() {
         return Vec::new();
     }
     if let Some(token) = ml_token() {
-        let r = fetch_ml(term, "Busqueda", &token);
-        if !r.is_empty() {
-            return r;
-        }
+        return fetch_ml(term, "Busqueda", &token);
     }
-    let q: String = term.split_whitespace().collect::<Vec<_>>().join("%20");
-    let url = format!("https://dummyjson.com/products/search?q={q}&limit=16");
-    fetch_catalog_from_api(&url).unwrap_or_default()
+    Vec::new()
 }
 
 /// Pull meaningful search keywords out of a user message (drop stopwords).
@@ -961,8 +981,8 @@ button.send:disabled{opacity:.5}
 </style></head><body>
 <div class="app">
 <header>
-  <div class="brand"><span class="logo">🪅</span><div style="min-width:0"><h1>__NOMBRE__</h1><div class="sub" id="sub"></div></div></div>
-  <div class="seg"><button id="bes" class="on">ES</button><button id="ben">EN</button></div>
+<div class="brand"><span class="logo">🪅</span><div style="min-width:0"><h1>__NOMBRE__</h1><div class="sub" id="sub"></div></div></div>
+<div class="seg"><button id="bes" class="on">ES</button><button id="ben">EN</button></div>
 </header>
 <main><div id="log"><div class="empty" id="empty"></div></div></main>
 <footer><form id="f"><input id="m" autocomplete="off" autofocus><button class="send" id="send" type="submit" aria-label="send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></form></footer>
@@ -973,22 +993,22 @@ button.send:disabled{opacity:.5}
 <h2>Casa Alebrije — regalos y artesanías mexicanas, con IA</h2>
 <p class="lead">No tienes que navegar un catálogo. Solo <b>platica con el asistente</b> — pídele talavera, alebrijes, textiles bordados, velas o decoración, y responde desde un <b>catálogo real</b> con foto, precio en <b>pesos (MXN)</b> y costo de envío. Nunca inventa un producto que no existe en inventario.</p>
 <div class="steps">
-  <div class="step2"><div class="n">01</div><div class="st">💬</div><h3>Pide lo que buscas</h3><p>Un regalo, una artesanía o una categoría — en español o inglés, aquí o por WhatsApp.</p></div>
-  <div class="step2"><div class="n">02</div><div class="st">🎁</div><h3>Revisa el catálogo real</h3><p>El agente consulta el catálogo y las existencias con datos reales — nada inventado.</p></div>
-  <div class="step2"><div class="n">03</div><div class="st">🛒</div><h3>Foto, precio y envío</h3><p>Te da la foto, el precio en MXN, una cotización de envío y un link de pago seguro.</p></div>
+<div class="step2"><div class="n">01</div><div class="st">💬</div><h3>Pide lo que buscas</h3><p>Un regalo, una artesanía o una categoría — en español o inglés, aquí o por WhatsApp.</p></div>
+<div class="step2"><div class="n">02</div><div class="st">🎁</div><h3>Revisa el catálogo real</h3><p>El agente consulta el catálogo y las existencias con datos reales — nada inventado.</p></div>
+<div class="step2"><div class="n">03</div><div class="st">🛒</div><h3>Foto, precio y envío</h3><p>Te da la foto, el precio en MXN, una cotización de envío y un link de pago seguro.</p></div>
 </div>
 <div class="feats">
-  <div class="feat"><span class="fi">📦</span><div><b>Catálogo real</b><span>Productos reales con foto, precio y existencias — no datos inventados.</span></div></div>
-  <div class="feat"><span class="fi">🚚</span><div><b>Envío y devoluciones</b><span>Cotiza envío por zona y gestiona devoluciones dentro de la política.</span></div></div>
-  <div class="feat"><span class="fi">🌎</span><div><b>Bilingüe siempre</b><span>Funciona en español e inglés; responde en el idioma en que escribes.</span></div></div>
-  <div class="feat"><span class="fi">🛡️</span><div><b>Cero alucinaciones</b><span>Si algo no está en el catálogo, lo dice. Las reglas viven en el código.</span></div></div>
+<div class="feat"><span class="fi">📦</span><div><b>Catálogo real</b><span>Productos reales con foto, precio y existencias — no datos inventados.</span></div></div>
+<div class="feat"><span class="fi">🚚</span><div><b>Envío y devoluciones</b><span>Cotiza envío por zona y gestiona devoluciones dentro de la política.</span></div></div>
+<div class="feat"><span class="fi">🌎</span><div><b>Bilingüe siempre</b><span>Funciona en español e inglés; responde en el idioma en que escribes.</span></div></div>
+<div class="feat"><span class="fi">🛡️</span><div><b>Cero alucinaciones</b><span>Si algo no está en el catálogo, lo dice. Las reglas viven en el código.</span></div></div>
 </div>
 <div class="tech">Rust + Anthropic tool-use + Postgres · WhatsApp + web · es-MX / EN · un demo de Marcus Patman — AdventureWave Labs / CreandoTuMatrix.</div>
 </div></section>
 <script>
 const I18N={
-  es:{lang:'es',sub:'Regalos y artesanías · con IA',ph:'busca un regalo o artesanía…',none:'(sin respuesta)',hi:'Regalos y artesanías mexicanas, con IA.',lead:'Pídeme talavera, alebrijes, textiles bordados, velas o decoración. Busco en el catálogo y te muestro foto, precio y envío.',chips:['Talavera','Alebrijes','Regalo de boda','Velas']},
-  en:{lang:'en',sub:'Gifts & crafts · AI-powered',ph:'search a gift or craft…',none:'(no reply)',hi:'Mexican gifts & crafts, AI-powered.',lead:'Ask for talavera, alebrijes, embroidered textiles, candles or décor. I search the catalog and show a photo, price and shipping.',chips:['Talavera','Alebrijes','Wedding gift','Candles']}
+es:{lang:'es',sub:'Regalos y artesanías · con IA',ph:'busca un regalo o artesanía…',none:'(sin respuesta)',hi:'Regalos y artesanías mexicanas, con IA.',lead:'Pídeme talavera, alebrijes, textiles bordados, velas o decoración. Busco en el catálogo y te muestro foto, precio y envío.',chips:['Talavera','Alebrijes','Regalo de boda','Velas']},
+en:{lang:'en',sub:'Gifts & crafts · AI-powered',ph:'search a gift or craft…',none:'(no reply)',hi:'Mexican gifts & crafts, AI-powered.',lead:'Ask for talavera, alebrijes, embroidered textiles, candles or décor. I search the catalog and show a photo, price and shipping.',chips:['Talavera','Alebrijes','Wedding gift','Candles']}
 };
 const $=id=>document.getElementById(id);
 const main=document.querySelector('main');
@@ -1001,20 +1021,20 @@ $('ben').onclick=()=>{lang='en';localStorage.setItem('lang',lang);apply();$('m')
 const log=$('log');
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function render(t){let s=esc(t);
-  s=s.replace(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g,'<img class="cov" src="$1">');
-  s=s.replace(/(^|[\s>])(https?:\/\/[^\s)<\]"]+\.(?:jpg|jpeg|png))/gi,'$1<img class="cov" src="$2">');
-  s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
-  s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
-  s=s.replace(/^[ \t]*\|?[ \t:|-]{3,}\|?[ \t]*$/gm,'');
-  s=s.replace(/[ \t]*\|[ \t]*/g,'  ');
-  s=s.replace(/\n{2,}/g,'\n').replace(/\n/g,'<br>');
-  return s;}
+s=s.replace(/!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g,'<img class="cov" src="$1">');
+s=s.replace(/(^|[\s>])(https?:\/\/[^\s)<\]"]+\.(?:jpg|jpeg|png))/gi,'$1<img class="cov" src="$2">');
+s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+s=s.replace(/^[ \t]*\|?[ \t:|-]{3,}\|?[ \t]*$/gm,'');
+s=s.replace(/[ \t]*\|[ \t]*/g,' ');
+s=s.replace(/\n{2,}/g,'\n').replace(/\n/g,'<br>');
+return s;}
 function bubble(html,who,raw){const r=document.createElement('div');r.className='row '+who;const b=document.createElement('div');b.className='b';if(raw){b.innerHTML=html;}else{b.textContent=html;}r.appendChild(b);log.appendChild(r);down();return b;}
 let busy=false;
 async function send(){const t=$('m').value.trim();if(!t||busy)return;const e=$('empty');if(e)e.remove();busy=true;$('send').disabled=true;bubble(t,'me',false);$('m').value='';const b=bubble('<div class="typing"><span></span><span></span><span></span></div>','ai',true);
-  try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:t,lang:lang})});const j=await r.json();b.innerHTML=render(j.reply||j.error||I18N[lang].none);}
-  catch(err){b.textContent='⚠️ '+err;}
-  busy=false;$('send').disabled=false;down();$('m').focus();}
+try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensaje:t,lang:lang})});const j=await r.json();b.innerHTML=render(j.reply||j.error||I18N[lang].none);}
+catch(err){b.textContent='⚠️ '+err;}
+busy=false;$('send').disabled=false;down();$('m').focus();}
 $('f').onsubmit=e=>{e.preventDefault();send();};
 apply();$('m').focus();
 </script></body></html>"##;
