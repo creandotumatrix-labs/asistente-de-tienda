@@ -1,138 +1,419 @@
 [
   {
-    "sku": "VTX",
-    "nombre_es": "Mochila Vortex",
-    "categoria": "Mochilas",
+    "sku": "TAL-001",
+    "nombre_es": "Tazón de Talavera azul (juego de 2)",
+    "categoria": "Talavera",
+    "precio_mxn": 890,
+    "descripcion_es": "Juego de 2 tazones de Talavera de Puebla, pintados a mano con motivo floral azul cobalto. Pieza única, uso decorativo o de mesa.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tal-001/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
+    "variantes": [
+      { "sku": "TAL-001-AZL", "color": "azul cobalto", "talla": null, "stock": 11, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "TAL-002",
+    "nombre_es": "Plato decorativo de Talavera (grande)",
+    "categoria": "Talavera",
+    "precio_mxn": 650,
+    "descripcion_es": "Plato decorativo de 30 cm, técnica Talavera tradicional, ideal para colgar en pared o exhibir en trinchador.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tal-002/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
+    "variantes": [
+      { "sku": "TAL-002-MUL", "color": "multicolor", "talla": null, "stock": 7, "precio_mxn": null, "foto_url": [] },
+      { "sku": "TAL-002-AZL", "color": "azul", "talla": null, "stock": 5, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "TAL-003",
+    "nombre_es": "Maceta de Talavera pintada a mano",
+    "categoria": "Talavera",
+    "precio_mxn": 780,
+    "descripcion_es": "Maceta de barro de 20 cm con esmalte Talavera, drenaje inferior, ideal para suculentas o plantas de interior.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tal-003/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
+    "variantes": [
+      { "sku": "TAL-003-VRD", "color": "verde/blanco", "talla": null, "stock": 9, "precio_mxn": null, "foto_url": [] },
+      { "sku": "TAL-003-AMR", "color": "amarillo/blanco", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "TAL-004",
+    "nombre_es": "Jarrón de Talavera multicolor",
+    "categoria": "Talavera",
+    "precio_mxn": 1190,
+    "descripcion_es": "Jarrón de 35 cm de altura, esmaltado a mano con motivos florales multicolor, pieza de exhibición.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tal-004/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
+    "variantes": [
+      { "sku": "TAL-004-MUL", "color": "multicolor", "talla": null, "stock": 4, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "ALB-001",
+    "nombre_es": "Alebrije de madera tallado a mano",
+    "categoria": "Alebrijes",
+    "precio_mxn": 890,
+    "descripcion_es": "Alebrije de madera de copal, tallado y pintado a mano por artesanos de Oaxaca. Figura fantástica de colores vibrantes, 18 cm.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/alb-001/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "ALB-001-MUL", "color": "multicolor", "talla": null, "stock": 13, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "ALB-002",
+    "nombre_es": "Alebrije jaguar pintado a mano",
+    "categoria": "Alebrijes",
     "precio_mxn": 1290,
-    "descripcion_es": "Mochila urbana de 28L con compartimento acolchado para laptop de 16\", tela resistente al agua, puerto de carga USB y correas ergonómicas.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/vtx/front.jpg"],
+    "descripcion_es": "Alebrije en forma de jaguar, 25 cm, madera de copal pintada con patrones puntillistas tradicionales oaxaqueños.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/alb-002/front.jpg"],
     "politica_devolucion": null,
     "variantes": [
-      { "sku": "VTX-BLK", "color": "negro", "talla": null, "stock": 14, "precio_mxn": null,
-        "foto_url": ["https://cdn.tienda-vortex.mx/vtx/negro-1.jpg", "https://cdn.tienda-vortex.mx/vtx/negro-2.jpg"] },
-      { "sku": "VTX-AZL", "color": "azul", "talla": null, "stock": 6, "precio_mxn": null, "foto_url": [] },
-      { "sku": "VTX-GRY", "color": "gris", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] }
+      { "sku": "ALB-002-MUL", "color": "multicolor", "talla": null, "stock": 6, "precio_mxn": null, "foto_url": [] }
     ]
   },
   {
-    "sku": "SDA",
-    "nombre_es": "Sudadera Andes",
-    "categoria": "Ropa",
-    "precio_mxn": 749,
-    "descripcion_es": "Sudadera con capucha de felpa interior, corte regular unisex, bolsillo canguro y cordón ajustable.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/sda/front.jpg"],
+    "sku": "ALB-003",
+    "nombre_es": "Alebrije dragón miniatura",
+    "categoria": "Alebrijes",
+    "precio_mxn": 490,
+    "descripcion_es": "Alebrije miniatura de dragón, 10 cm, ideal como detalle de regalo o pieza de colección.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/alb-003/front.jpg"],
     "politica_devolucion": null,
     "variantes": [
-      { "sku": "SDA-NGR-S", "color": "negro", "talla": "S", "stock": 8,  "precio_mxn": null, "foto_url": [] },
-      { "sku": "SDA-NGR-M", "color": "negro", "talla": "M", "stock": 12, "precio_mxn": null, "foto_url": [] },
-      { "sku": "SDA-NGR-L", "color": "negro", "talla": "L", "stock": 3,  "precio_mxn": null, "foto_url": [] },
-      { "sku": "SDA-VRD-M", "color": "verde", "talla": "M", "stock": 0,  "precio_mxn": null, "foto_url": [] }
+      { "sku": "ALB-003-ROJ", "color": "rojo/dorado", "talla": null, "stock": 15, "precio_mxn": null, "foto_url": [] },
+      { "sku": "ALB-003-AZL", "color": "azul/plata", "talla": null, "stock": 8, "precio_mxn": null, "foto_url": [] }
     ]
   },
   {
-    "sku": "TRA",
-    "nombre_es": "Tenis Rauda",
-    "categoria": "Calzado",
+    "sku": "ALB-004",
+    "nombre_es": "Alebrije búho de copal",
+    "categoria": "Alebrijes",
+    "precio_mxn": 990,
+    "descripcion_es": "Alebrije en forma de búho, madera de copal tallada a mano, 20 cm, pintura acrílica fina.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/alb-004/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "ALB-004-MUL", "color": "multicolor", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "TEX-001",
+    "nombre_es": "Bolsa bordada a mano de Chiapas",
+    "categoria": "Textiles",
+    "precio_mxn": 700,
+    "descripcion_es": "Bolsa de algodón con bordado floral típico de Chiapas, hecho a mano por artesanas locales, forro interior y cierre.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tex-001/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "TEX-001-NAT", "color": "natural/multicolor", "talla": null, "stock": 10, "precio_mxn": null, "foto_url": [] },
+      { "sku": "TEX-001-NGR", "color": "negro/multicolor", "talla": null, "stock": 4, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "TEX-002",
+    "nombre_es": "Rebozo de algodón tejido a mano",
+    "categoria": "Textiles",
+    "precio_mxn": 1090,
+    "descripcion_es": "Rebozo tradicional tejido en telar de cintura, 100% algodón, flecos anudados a mano.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tex-002/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "TEX-002-AZL", "color": "azul rebozo", "talla": null, "stock": 6, "precio_mxn": null, "foto_url": [] },
+      { "sku": "TEX-002-GRS", "color": "gris rebozo", "talla": null, "stock": 3, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "TEX-003",
+    "nombre_es": "Mantel bordado de Oaxaca",
+    "categoria": "Textiles",
+    "precio_mxn": 990,
+    "descripcion_es": "Mantel rectangular de algodón con bordado floral oaxaqueño, 150x220 cm, ideal para mesa de 6-8 personas.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tex-003/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "TEX-003-BLA", "color": "blanco/multicolor", "talla": null, "stock": 5, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "TEX-004",
+    "nombre_es": "Huipil bordado tradicional",
+    "categoria": "Textiles",
     "precio_mxn": 1490,
-    "descripcion_es": "Tenis para correr con suela de EVA, malla transpirable y plantilla de retorno de energía. Peso ligero.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/tra/front.jpg"],
+    "descripcion_es": "Huipil de algodón con bordado a mano de punto de cruz, corte tradicional, talla única.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tex-004/front.jpg"],
     "politica_devolucion": null,
     "variantes": [
-      { "sku": "TRA-BLK-26", "color": "negro",  "talla": "26", "stock": 5, "precio_mxn": null, "foto_url": [] },
-      { "sku": "TRA-BLK-27", "color": "negro",  "talla": "27", "stock": 7, "precio_mxn": null, "foto_url": [] },
-      { "sku": "TRA-WHT-27", "color": "blanco", "talla": "27", "stock": 2, "precio_mxn": null, "foto_url": [] },
-      { "sku": "TRA-WHT-28", "color": "blanco", "talla": "28", "stock": 0, "precio_mxn": null, "foto_url": [] }
+      { "sku": "TEX-004-BLA", "color": "blanco/multicolor", "talla": "única", "stock": 2, "precio_mxn": null, "foto_url": [] }
     ]
   },
   {
-    "sku": "SON",
-    "nombre_es": "Audífonos SonoPro",
-    "categoria": "Electrónica",
-    "precio_mxn": 2390,
-    "descripcion_es": "Audífonos inalámbricos over-ear con cancelación activa de ruido, 30 h de batería y Bluetooth 5.3.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/son/front.jpg"],
+    "sku": "TEX-005",
+    "nombre_es": "Hamaca artesanal de algodón",
+    "categoria": "Textiles",
+    "precio_mxn": 1390,
+    "descripcion_es": "Hamaca tejida a mano en algodón, tamaño matrimonial, soporta hasta 150 kg, incluye bolsa de tela para transporte.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tex-005/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "TEX-005-MUL", "color": "multicolor", "talla": "matrimonial", "stock": 4, "precio_mxn": null, "foto_url": [] },
+      { "sku": "TEX-005-NAT", "color": "natural", "talla": "matrimonial", "stock": 0, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "TEX-006",
+    "nombre_es": "Tapete tejido a mano",
+    "categoria": "Textiles",
+    "precio_mxn": 1690,
+    "descripcion_es": "Tapete de lana tejido en telar de pedal, diseño geométrico zapoteco, 90x150 cm.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/tex-006/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "TEX-006-GRS", "color": "gris/negro", "talla": null, "stock": 3, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "VEL-001",
+    "nombre_es": "Vela artesanal de cera de abeja",
+    "categoria": "Velas",
+    "precio_mxn": 320,
+    "descripcion_es": "Vela de cera de abeja 100% natural, hecha a mano, aroma suave a miel, 15 cm de altura, tiempo de quemado ~40 h.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/vel-001/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "VEL-001-NAT", "color": "natural", "talla": null, "stock": 22, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "VEL-002",
+    "nombre_es": "Set de velas aromáticas (3 piezas)",
+    "categoria": "Velas",
+    "precio_mxn": 490,
+    "descripcion_es": "Set de 3 velas de soya con aromas de copal, flor de azahar y vainilla, en frascos de vidrio reutilizables.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/vel-002/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "VEL-002-SET", "color": "surtido", "talla": null, "stock": 16, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "VEL-003",
+    "nombre_es": "Vela decorativa Día de Muertos",
+    "categoria": "Velas",
+    "precio_mxn": 260,
+    "descripcion_es": "Vela decorativa con relieve de calavera de azúcar pintada a mano, aroma a cempasúchil.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/vel-003/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "VEL-003-NAR", "color": "naranja/blanco", "talla": null, "stock": 9, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "VEL-004",
+    "nombre_es": "Portavelas de vidrio soplado",
+    "categoria": "Velas",
+    "precio_mxn": 390,
+    "descripcion_es": "Portavelas de vidrio soplado a mano en taller mexicano, acabado con burbujas de aire características, 12 cm.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/vel-004/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
+    "variantes": [
+      { "sku": "VEL-004-AMB", "color": "ámbar", "talla": null, "stock": 7, "precio_mxn": null, "foto_url": [] },
+      { "sku": "VEL-004-VRD", "color": "verde", "talla": null, "stock": 5, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "JOY-001",
+    "nombre_es": "Aretes de plata de Taxco",
+    "categoria": "Joyería",
+    "precio_mxn": 590,
+    "descripcion_es": "Aretes de plata .925 hechos a mano en Taxco, Guerrero, diseño filigrana tradicional.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/joy-001/front.jpg"],
     "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
-      { "sku": "SON-BLK", "color": "negro",  "talla": null, "stock": 9, "precio_mxn": null, "foto_url": [] },
-      { "sku": "SON-WHT", "color": "blanco", "talla": null, "stock": 4, "precio_mxn": null, "foto_url": [] }
+      { "sku": "JOY-001-PLA", "color": "plata", "talla": null, "stock": 14, "precio_mxn": null, "foto_url": [] }
     ]
   },
   {
-    "sku": "GRA",
-    "nombre_es": "Gorra Cumbre",
-    "categoria": "Accesorios",
-    "precio_mxn": 349,
-    "descripcion_es": "Gorra ajustable de algodón con logo bordado y cierre trasero metálico.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/gra/front.jpg"],
-    "politica_devolucion": null,
+    "sku": "JOY-002",
+    "nombre_es": "Collar de plata con turquesa",
+    "categoria": "Joyería",
+    "precio_mxn": 990,
+    "descripcion_es": "Collar de plata .925 con piedra de turquesa natural engarzada a mano, cadena de 45 cm.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/joy-002/front.jpg"],
+    "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
-      { "sku": "GRA-BLK", "color": "negro",  "talla": null, "stock": 20, "precio_mxn": null, "foto_url": [] },
-      { "sku": "GRA-BEI", "color": "beige",  "talla": null, "stock": 11, "precio_mxn": null, "foto_url": [] }
+      { "sku": "JOY-002-TUR", "color": "plata/turquesa", "talla": null, "stock": 8, "precio_mxn": null, "foto_url": [] }
     ]
   },
   {
-    "sku": "BOT",
-    "nombre_es": "Botella Hidra 1L",
-    "categoria": "Accesorios",
-    "precio_mxn": 299,
-    "descripcion_es": "Botella térmica de acero inoxidable de 1L, mantiene frío 24h y caliente 12h. Libre de BPA.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/bot/front.jpg"],
-    "politica_devolucion": null,
+    "sku": "JOY-003",
+    "nombre_es": "Pulsera de plata martillada",
+    "categoria": "Joyería",
+    "precio_mxn": 690,
+    "descripcion_es": "Pulsera de plata .925 con acabado martillado a mano, ajustable, hecha por plateros de Taxco.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/joy-003/front.jpg"],
+    "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
-      { "sku": "BOT-STL", "color": "acero", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] },
-      { "sku": "BOT-NGR", "color": "negro", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] }
+      { "sku": "JOY-003-PLA", "color": "plata", "talla": "ajustable", "stock": 11, "precio_mxn": null, "foto_url": [] }
     ]
   },
   {
-    "sku": "CIN",
-    "nombre_es": "Cinturón Nomad",
-    "categoria": "Accesorios",
-    "precio_mxn": 459,
-    "descripcion_es": "Cinturón de piel genuina con hebilla metálica cepillada, ancho de 3.5 cm.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/cin/front.jpg"],
-    "politica_devolucion": null,
+    "sku": "JOY-004",
+    "nombre_es": "Anillo de plata con obsidiana",
+    "categoria": "Joyería",
+    "precio_mxn": 590,
+    "descripcion_es": "Anillo de plata .925 con piedra de obsidiana negra pulida, tallada en México.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/joy-004/front.jpg"],
+    "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
-      { "sku": "CIN-CAF-90", "color": "café",  "talla": "90", "stock": 6, "precio_mxn": null, "foto_url": [] },
-      { "sku": "CIN-NGR-95", "color": "negro", "talla": "95", "stock": 4, "precio_mxn": null, "foto_url": [] }
+      { "sku": "JOY-004-P6", "color": "plata/negro", "talla": "6", "stock": 5, "precio_mxn": null, "foto_url": [] },
+      { "sku": "JOY-004-P7", "color": "plata/negro", "talla": "7", "stock": 6, "precio_mxn": null, "foto_url": [] },
+      { "sku": "JOY-004-P8", "color": "plata/negro", "talla": "8", "stock": 0, "precio_mxn": null, "foto_url": [] }
     ]
   },
   {
-    "sku": "PLA",
-    "nombre_es": "Playera Base",
-    "categoria": "Ropa",
-    "precio_mxn": 299,
-    "descripcion_es": "Playera de algodón peinado, cuello redondo, corte clásico. Prelavada anti-encogimiento.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/pla/front.jpg"],
-    "politica_devolucion": null,
+    "sku": "JOY-005",
+    "nombre_es": "Aretes de filigrana de oro laminado",
+    "categoria": "Joyería",
+    "precio_mxn": 450,
+    "descripcion_es": "Aretes con técnica de filigrana, baño de oro laminado, diseño oaxaqueño tradicional.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/joy-005/front.jpg"],
+    "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
-      { "sku": "PLA-BLK-M", "color": "negro",  "talla": "M", "stock": 25, "precio_mxn": null, "foto_url": [] },
-      { "sku": "PLA-BLK-L", "color": "negro",  "talla": "L", "stock": 18, "precio_mxn": null, "foto_url": [] },
-      { "sku": "PLA-WHT-M", "color": "blanco", "talla": "M", "stock": 14, "precio_mxn": null, "foto_url": [] }
+      { "sku": "JOY-005-ORO", "color": "dorado", "talla": null, "stock": 9, "precio_mxn": null, "foto_url": [] }
     ]
   },
   {
-    "sku": "CHA",
-    "nombre_es": "Chamarra Tormenta",
-    "categoria": "Ropa",
-    "precio_mxn": 1890,
-    "descripcion_es": "Chamarra impermeable con costuras selladas, capucha ajustable y ventilación bajo brazo. Ideal para lluvia.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/cha/front.jpg"],
-    "politica_devolucion": null,
+    "sku": "BAR-001",
+    "nombre_es": "Jarrón de barro negro de Oaxaca",
+    "categoria": "Barro",
+    "precio_mxn": 780,
+    "descripcion_es": "Jarrón de barro negro pulido a mano, técnica ancestral de San Bartolo Coyotepec, 25 cm de altura.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/bar-001/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
-      { "sku": "CHA-NGR-M", "color": "negro", "talla": "M", "stock": 4, "precio_mxn": null, "foto_url": [] },
-      { "sku": "CHA-NGR-L", "color": "negro", "talla": "L", "stock": 2, "precio_mxn": null, "foto_url": [] }
+      { "sku": "BAR-001-NGR", "color": "negro", "talla": null, "stock": 6, "precio_mxn": null, "foto_url": [] }
     ]
   },
   {
-    "sku": "LAP",
-    "nombre_es": "Funda Laptop Vortex 16\"",
-    "categoria": "Accesorios",
-    "precio_mxn": 549,
-    "descripcion_es": "Funda acolchada para laptop de 16\", forro de microfibra y cierre perimetral. Compatible con la Mochila Vortex.",
-    "foto_url": ["https://cdn.tienda-vortex.mx/lap/front.jpg"],
+    "sku": "BAR-002",
+    "nombre_es": "Set de tazas de barro negro",
+    "categoria": "Barro",
+    "precio_mxn": 590,
+    "descripcion_es": "Set de 4 tazas de barro negro de Oaxaca, pulidas a mano, aptas para bebidas calientes.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/bar-002/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
+    "variantes": [
+      { "sku": "BAR-002-NGR", "color": "negro", "talla": null, "stock": 10, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "BAR-003",
+    "nombre_es": "Figura decorativa de barro negro",
+    "categoria": "Barro",
+    "precio_mxn": 420,
+    "descripcion_es": "Figura de venado en barro negro pulido, pieza decorativa de mesa, 12 cm.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/bar-003/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
+    "variantes": [
+      { "sku": "BAR-003-NGR", "color": "negro", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "DEC-001",
+    "nombre_es": "Catrina de cerámica pintada a mano",
+    "categoria": "Decoración",
+    "precio_mxn": 950,
+    "descripcion_es": "Catrina de cerámica de 35 cm, pintada a mano con detalles florales, pieza de colección.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/dec-001/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
+    "variantes": [
+      { "sku": "DEC-001-MUL", "color": "multicolor", "talla": null, "stock": 5, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "DEC-002",
+    "nombre_es": "Papel picado (set de 10 banderines)",
+    "categoria": "Decoración",
+    "precio_mxn": 190,
+    "descripcion_es": "Set de 10 banderines de papel picado tradicional, 3 metros de largo, diseño floral y calaveras.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/dec-002/front.jpg"],
     "politica_devolucion": null,
     "variantes": [
-      { "sku": "LAP-GRY", "color": "gris", "talla": null, "stock": 10, "precio_mxn": null, "foto_url": [] }
+      { "sku": "DEC-002-MUL", "color": "multicolor", "talla": null, "stock": 30, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "DEC-003",
+    "nombre_es": "Espejo decorativo con marco de hojalata",
+    "categoria": "Decoración",
+    "precio_mxn": 690,
+    "descripcion_es": "Espejo redondo de 30 cm con marco de hojalata repujada a mano, motivo sol.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/dec-003/front.jpg"],
+    "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
+    "variantes": [
+      { "sku": "DEC-003-PLA", "color": "plata envejecida", "talla": null, "stock": 4, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "DEC-004",
+    "nombre_es": "Cruz de hojalata decorativa",
+    "categoria": "Decoración",
+    "precio_mxn": 350,
+    "descripcion_es": "Cruz decorativa de hojalata repujada con incrustaciones de vidrio de colores, 25 cm.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/dec-004/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "DEC-004-MUL", "color": "multicolor", "talla": null, "stock": 8, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "DEC-005",
+    "nombre_es": "Corazón milagro de hojalata",
+    "categoria": "Decoración",
+    "precio_mxn": 290,
+    "descripcion_es": "Corazón milagro tradicional de hojalata pintada, ideal como detalle de regalo o adorno de pared.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/dec-005/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "DEC-005-ROJ", "color": "rojo/dorado", "talla": null, "stock": 12, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "DEC-006",
+    "nombre_es": "Nicho decorativo de madera",
+    "categoria": "Decoración",
+    "precio_mxn": 590,
+    "descripcion_es": "Nicho de madera tallada y pintada a mano, estilo mexicano tradicional, para veladoras o figuras pequeñas.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/dec-006/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "DEC-006-AZL", "color": "azul/dorado", "talla": null, "stock": 3, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "REG-001",
+    "nombre_es": "Caja de regalo surtida \"Sabor a México\"",
+    "categoria": "Regalos",
+    "precio_mxn": 690,
+    "descripcion_es": "Caja de regalo con mini alebrije, vela artesanal y dulces típicos mexicanos, empaque decorado.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/reg-001/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "REG-001-STD", "color": "estándar", "talla": null, "stock": 18, "precio_mxn": null, "foto_url": [] }
+    ]
+  },
+  {
+    "sku": "REG-002",
+    "nombre_es": "Tarjeta postal ilustrada + imán de alebrije",
+    "categoria": "Regalos",
+    "precio_mxn": 150,
+    "descripcion_es": "Set de tarjeta postal ilustrada a mano e imán de alebrije en miniatura, detalle de regalo pequeño.",
+    "foto_url": ["https://cdn.casa-alebrije.mx/reg-002/front.jpg"],
+    "politica_devolucion": null,
+    "variantes": [
+      { "sku": "REG-002-MUL", "color": "multicolor", "talla": null, "stock": 25, "precio_mxn": null, "foto_url": [] }
     ]
   }
 ]
