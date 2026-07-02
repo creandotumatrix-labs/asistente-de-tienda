@@ -123,6 +123,11 @@ SINONIMOS = [
     ["mujer", "mujeres", "woman", "women", "womens"],
     ["hombre", "hombres", "man", "men", "mens"],
     ["nino", "ninos", "nina", "ninas", "kid", "kids", "child", "children"],
+    # "lentes de sol" / "gafas de sol" -> sunglasses: "sol" needs its own
+    # mapping since "sunglasses" contains "sun" as a literal substring.
+    ["sol", "sun"],
+    ["regalo", "regalos", "gift", "gifts"],
+    ["artesania", "artesanias", "craft", "crafts", "handmade", "handcraft", "handcrafted"],
 ]
 
 # Mirrors src/util.rs::STOPWORDS — filler words skipped so a natural phrase
@@ -259,6 +264,8 @@ def main() -> int:
           any(p["sku"] == "TEX-001" for p, _ in bolsas))
     check("todos_los_tokens: 'bolsas de mujer' resuelve producto en inglés (stopword + sinonimo)",
           todos_los_tokens("Prada Women Bag", "bolsas de mujer"))
+    check("todos_los_tokens: 'lentes de sol' resuelve 'Sunglasses' (sol -> sun)",
+          todos_los_tokens("Classic Sunglasses", "lentes de sol"))
 
     print("inventario")
     _, v = variant_by_sku(products, "TAL-002-AZL")
