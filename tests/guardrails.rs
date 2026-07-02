@@ -27,14 +27,14 @@ fn state() -> AppState {
 #[test]
 fn search_returns_real_product() {
     let st = state();
-    let r = dispatch(&st, "search_products", &json!({ "query": "mochila vortex", "color": "negro" }));
+    let r = dispatch(&st, "search_products", &json!({ "query": "plato talavera", "color": "azul" }));
     assert_eq!(r["total"].as_u64(), Some(1));
     let p = &r["resultados"][0];
-    assert_eq!(p["sku"].as_str(), Some("VTX"));
-    assert_eq!(p["precio_mxn"].as_u64(), Some(1290));
-    // color filter narrows variants to the black one only
+    assert_eq!(p["sku"].as_str(), Some("TAL-002"));
+    assert_eq!(p["precio_mxn"].as_u64(), Some(650));
+    // color filter narrows variants to the blue one only
     assert_eq!(p["variantes"].as_array().unwrap().len(), 1);
-    assert_eq!(p["variantes"][0]["sku"].as_str(), Some("VTX-BLK"));
+    assert_eq!(p["variantes"][0]["sku"].as_str(), Some("TAL-002-AZL"));
 }
 
 #[test]
@@ -50,16 +50,16 @@ fn search_unknown_product_is_empty_not_fabricated() {
 #[test]
 fn inventory_variant_in_stock() {
     let st = state();
-    let r = dispatch(&st, "check_inventory", &json!({ "sku": "VTX-BLK" }));
+    let r = dispatch(&st, "check_inventory", &json!({ "sku": "TAL-002-AZL" }));
     assert_eq!(r["encontrado"].as_bool(), Some(true));
     assert_eq!(r["disponible"].as_bool(), Some(true));
-    assert_eq!(r["stock"].as_u64(), Some(14));
+    assert_eq!(r["stock"].as_u64(), Some(5));
 }
 
 #[test]
 fn inventory_variant_out_of_stock() {
     let st = state();
-    let r = dispatch(&st, "check_inventory", &json!({ "sku": "VTX-GRY" }));
+    let r = dispatch(&st, "check_inventory", &json!({ "sku": "ALB-004-MUL" }));
     assert_eq!(r["disponible"].as_bool(), Some(false));
     assert_eq!(r["stock"].as_u64(), Some(0));
 }
@@ -76,7 +76,9 @@ fn inventory_unknown_sku() {
 #[test]
 fn cannot_sell_out_of_stock() {
     let st = state();
-    let r = dispatch(&st, "create_order_link", &json!({ "sku": "VTX-GRY", "qty": 1 }));
+    // JOY-004 (Anillo de plata con obsidiana): talla 8 is out of stock, but
+    // tallas 6 and 7 of the same product are in stock — real alternatives.
+    let r = dispatch(&st, "create_order_link", &json!({ "sku": "JOY-004-P8", "qty": 1 }));
     assert_eq!(r["creado"].as_bool(), Some(false));
     assert_eq!(r["error"].as_str(), Some("sin_stock"));
     assert!(r.get("pay_link").is_none(), "no debe existir link de pago para OOS");
@@ -89,7 +91,7 @@ fn cannot_sell_out_of_stock() {
 #[test]
 fn cannot_oversell_beyond_stock() {
     let st = state();
-    let r = dispatch(&st, "create_order_link", &json!({ "sku": "VTX-AZL", "qty": 999 }));
+    let r = dispatch(&st, "create_order_link", &json!({ "sku": "TAL-002-AZL", "qty": 999 }));
     assert_eq!(r["creado"].as_bool(), Some(false));
     assert_eq!(r["error"].as_str(), Some("stock_insuficiente"));
     assert!(r.get("pay_link").is_none());
@@ -98,11 +100,11 @@ fn cannot_oversell_beyond_stock() {
 #[test]
 fn pay_link_for_in_stock_sku() {
     let st = state();
-    let r = dispatch(&st, "create_order_link", &json!({ "sku": "VTX-BLK", "qty": 1 }));
+    let r = dispatch(&st, "create_order_link", &json!({ "sku": "TAL-002-AZL", "qty": 1 }));
     assert_eq!(r["creado"].as_bool(), Some(true));
-    assert_eq!(r["total_mxn"].as_u64(), Some(1290));
+    assert_eq!(r["total_mxn"].as_u64(), Some(650));
     let link = r["pay_link"].as_str().unwrap();
-    assert!(link.contains("sku=VTX-BLK"));
+    assert!(link.contains("sku=TAL-002-AZL"));
     assert!(link.contains("qty=1"));
 }
 
@@ -217,7 +219,7 @@ fn start_return_dispatch_not_delivered_is_deterministic() {
 fn disabled_flow_is_not_callable() {
     let mut st = state();
     st.config.flujos.create_order_link = false;
-    let r = dispatch(&st, "create_order_link", &json!({ "sku": "VTX-BLK" }));
+    let r = dispatch(&st, "create_order_link", &json!({ "sku": "TAL-002-AZL" }));
     assert_eq!(r["error"].as_str(), Some("herramienta_deshabilitada"));
     // and it's not advertised to the model
     assert!(enabled_tools(&st).iter().all(|t| t.name != "create_order_link"));

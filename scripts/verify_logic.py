@@ -9,7 +9,7 @@ outcomes as tests/guardrails.rs. It is an executable cross-check of the data +
 algorithm design that runs anywhere Python 3.8+ is available — no Rust toolchain,
 no network, no LLM.
 
-Run:  python3 scripts/verify_logic.py
+Run: python3 scripts/verify_logic.py
 Exit: 0 if every invariant holds, 1 otherwise.
 """
 from __future__ import annotations
@@ -23,7 +23,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TODAY = date(2026, 6, 29)  # fixed "today" so the oracle is deterministic
-
 
 # ── tiny TOML subset reader (store.toml only) ───────────────────────────────
 def load_toml(path: Path) -> dict:
@@ -46,7 +45,6 @@ def load_toml(path: Path) -> dict:
             cur[k.strip()] = _value(v.strip())
     return root
 
-
 def _descend(root: dict, parts: list[str], array: bool) -> dict:
     node = root
     for p in parts[:-1]:
@@ -61,7 +59,6 @@ def _descend(root: dict, parts: list[str], array: bool) -> dict:
         return d
     return node.setdefault(last, {})
 
-
 def _value(s: str):
     if s.startswith("[") and s.endswith("]"):
         inner = s[1:-1].strip()
@@ -73,7 +70,6 @@ def _value(s: str):
     if re.match(r"^-?\d+$", s):
         return int(s)
     return s.strip('"')
-
 
 def _split_array(inner: str) -> list[str]:
     out, buf, depth, q = [], "", 0, False
@@ -89,13 +85,11 @@ def _split_array(inner: str) -> list[str]:
         out.append(buf)
     return out
 
-
 # ── helpers mirroring the Rust logic ────────────────────────────────────────
 def norm(s: str) -> str:
     s = unicodedata.normalize("NFKD", s)
     s = "".join(c for c in s if not unicodedata.combining(c))
     return s.lower().strip()
-
 
 def search_products(products, query=None, color=None, talla=None, categoria=None, max_precio=None):
     out = []
@@ -120,14 +114,12 @@ def search_products(products, query=None, color=None, talla=None, categoria=None
             out.append((p, matched))
     return out
 
-
 def variant_by_sku(products, sku):
     for p in products:
         for v in p["variantes"]:
             if v["sku"].lower() == sku.lower():
                 return p, v
     return None
-
 
 def create_order_link(products, sku, qty, pay_base):
     hit = variant_by_sku(products, sku)
@@ -143,7 +135,6 @@ def create_order_link(products, sku, qty, pay_base):
     return {"creado": True, "pay_link": f"{pay_base}?sku={v['sku']}&qty={qty}&amount={price*qty}",
             "total_mxn": price * qty}
 
-
 def check_shipping(cfg, destino):
     es_cp = destino.isdigit() and len(destino) >= 2
     for row in cfg["envios"]["tabla"]:
@@ -157,11 +148,9 @@ def check_shipping(cfg, destino):
     return {"zona": "Nacional (general)", "costo_mxn": cfg["envios"]["default_costo_mxn"],
             "dias": cfg["envios"]["default_dias"]}
 
-
 def order_by_id(orders, oid):
     oid = norm(oid.lstrip("#"))
     return next((o for o in orders if norm(o["order_id"]) == oid), None)
-
 
 def return_decision(order, plazo_dias):
     if order is None:
@@ -174,10 +163,8 @@ def return_decision(order, plazo_dias):
         return ("fuera_de_plazo", days)
     return ("elegible", days)
 
-
 # ── assertion runner ────────────────────────────────────────────────────────
 PASS, FAIL = 0, 0
-
 
 def check(name, cond):
     global PASS, FAIL
@@ -188,7 +175,6 @@ def check(name, cond):
         FAIL += 1
         print(f"  \033[31m✗ {name}\033[0m")
 
-
 def main() -> int:
     products = json.loads((ROOT / "data/products.json").read_text(encoding="utf-8"))
     orders = json.loads((ROOT / "data/orders.json").read_text(encoding="utf-8"))
@@ -197,30 +183,30 @@ def main() -> int:
     pay_base = cfg["pagos"]["pay_link_base"]
 
     print("grounding")
-    res = search_products(products, query="mochila vortex", color="negro")
-    check("busca 'mochila vortex' negro → 1 producto (VTX/VTX-BLK)",
-          len(res) == 1 and res[0][0]["sku"] == "VTX"
-          and [v["sku"] for v in res[0][1]] == ["VTX-BLK"])
+    res = search_products(products, query="plato talavera", color="azul")
+    check("busca 'plato talavera' azul → 1 producto (TAL-002/TAL-002-AZL)",
+          len(res) == 1 and res[0][0]["sku"] == "TAL-002"
+          and [v["sku"] for v in res[0][1]] == ["TAL-002-AZL"])
     check("producto inexistente → 0 resultados (sin alucinar)",
           len(search_products(products, query="dron submarino nuclear")) == 0)
 
     print("inventario")
-    _, v = variant_by_sku(products, "VTX-BLK")
-    check("VTX-BLK disponible, stock 14", v["stock"] == 14 and v["stock"] > 0)
-    _, vg = variant_by_sku(products, "VTX-GRY")
-    check("VTX-GRY agotado (stock 0)", vg["stock"] == 0)
+    _, v = variant_by_sku(products, "TAL-002-AZL")
+    check("TAL-002-AZL disponible, stock 5", v["stock"] == 5 and v["stock"] > 0)
+    _, vg = variant_by_sku(products, "ALB-004-MUL")
+    check("ALB-004-MUL agotado (stock 0)", vg["stock"] == 0)
     check("SKU desconocido no existe", variant_by_sku(products, "ZZZ-000") is None)
 
     print("venta consciente de stock")
-    oos = create_order_link(products, "VTX-GRY", 1, pay_base)
+    oos = create_order_link(products, "JOY-004-P8", 1, pay_base)
     check("no vende agotado (sin pay_link)", oos["creado"] is False and "pay_link" not in oos)
     check("ofrece alternativas reales en stock",
           len(oos["alternativas"]) > 0 and all(a["stock"] > 0 for a in oos["alternativas"]))
-    over = create_order_link(products, "VTX-AZL", 999, pay_base)
+    over = create_order_link(products, "TAL-002-AZL", 999, pay_base)
     check("no sobrevende (stock_insuficiente)", over["error"] == "stock_insuficiente")
-    ok = create_order_link(products, "VTX-BLK", 1, pay_base)
-    check("genera link para SKU en stock (total 1290)",
-          ok["creado"] and ok["total_mxn"] == 1290 and "sku=VTX-BLK" in ok["pay_link"])
+    ok = create_order_link(products, "TAL-002-AZL", 1, pay_base)
+    check("genera link para SKU en stock (total 650)",
+          ok["creado"] and ok["total_mxn"] == 650 and "sku=TAL-002-AZL" in ok["pay_link"])
 
     print("envíos")
     check("Guadalajara → $99 / 2-3 días",
@@ -248,7 +234,6 @@ def main() -> int:
 
     print(f"\n{PASS} passed, {FAIL} failed")
     return 1 if FAIL else 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

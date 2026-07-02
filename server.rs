@@ -13,7 +13,6 @@
 //!   POST /chat     -> { "mensaje": "...", "lang": "es"|"en" } -> drives the agent
 
 use std::collections::HashSet;
-use std::io::Read;
 use std::path::Path;
 use std::time::Duration;
 
