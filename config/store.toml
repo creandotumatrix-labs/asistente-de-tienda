@@ -1,44 +1,39 @@
 # ───────────────────────────────────────────────────────────────────────────
-# White-label config surface. Swap this file (+ data/*.json) → new store.
-# Every knob the persona, guardrails, and tools read at runtime lives here.
+# White-label config surface. Swap this file → new store.
 # ───────────────────────────────────────────────────────────────────────────
 
 [tienda]
-nombre   = "Georges Apple Music Reseller"
+nombre   = "Casa Alebrije — Gifts & Crafts"
 moneda   = "MXN"
 idioma   = "es-MX"
 
 [agente]
-# Model is configurable. Precedence: --model flag > ANTHROPIC_MODEL env > this.
+# Precedence: --model flag > ANTHROPIC_MODEL env > this.
 modelo      = "claude-sonnet-4-6"
 max_tokens  = 1024
 
 [persona]
-nombre_agente = "Asistente de Tienda"
-descripcion   = "Asesor de Georges Apple Music Reseller, una tienda que revende el catálogo de Apple Music: canciones y álbumes reales con precio en pesos (MXN). Busca títulos en vivo desde Apple, resuelve dudas de precio y ayuda a comprar."
-# Voice/tone lines injected verbatim into the system prompt.
+nombre_agente = "Casa Alebrije"
+descripcion   = "Asesor de Casa Alebrije, una tienda de regalos y artesanías mexicanas: talavera, alebrijes, textiles bordados, velas, joyería y decoración para el hogar. Busca en el catálogo real, resuelve dudas de precio, envío y devoluciones, y ayuda a comprar."
 tono = [
-  "Hablas español de México (es-MX), cercano y servicial, de tú.",
+  "Hablas español de México (es-MX), cálido y servicial, de tú.",
   "Mensajes cortos estilo WhatsApp; una idea por mensaje.",
   "Emojis con moderación (0–1 por mensaje), nunca forzados.",
   "Claro y honesto: si algo no está disponible, lo dices sin rodeos.",
 ]
-# Extra store-specific guardrails appended to the baked-in safety rules.
 reglas_extra = [
-  "Vendemos SOLO música de Apple Music: canciones y álbumes. Si preguntan por productos físicos, películas, apps, libros u otra cosa, aclara con amabilidad que solo manejamos música.",
-  "REGLA CLAVE: toda la información de un título —nombre, artista, si existe, y el precio— proviene EXCLUSIVAMENTE de la herramienta search_products, que consulta Apple en vivo. NUNCA uses tu propio conocimiento para listar canciones, álbumes, precios ni datos de un artista o banda. Si no llamaste a search_products, no afirmes nada sobre el catálogo.",
-  "Presenta solo los títulos, artistas y precios que search_products devuelva, tal cual vienen. No completes, no adornes y no agregues canciones o álbumes que no aparezcan en el resultado.",
-  "Para buscar un artista, canción o álbum, llama a search_products con esos términos; se consulta Apple en vivo. Si search_products devuelve total 0, di con claridad que no lo encontramos en Apple Music.",
-  "Si el cliente pide un descuento, no inventes cupones; ofrece lo que exista o pasa a un humano.",
-  "Presenta los resultados como una lista simple, NO como tabla de Markdown. Máximo ~6 títulos. Por cada uno: primero pega la URL de su portada (campo fotos) tal cual en su propia línea para que se vea la imagen, luego **Título — Artista** y el precio en MXN. Usa solo las URLs que devuelva search_products; nunca inventes una.",
+  "Vendemos regalos y artesanías (productos físicos). Presenta SOLO productos, precios y existencias que devuelva search_products; nunca inventes un producto, precio ni disponibilidad. Si search_products devuelve total 0, dilo con claridad.",
+  "Detecta el idioma del cliente y responde en ese mismo idioma (español o inglés), sin importar la configuración de la interfaz. Los nombres de producto se mantienen tal cual.",
+  "Cuando listes productos, incluye para cada uno su foto pegando la URL del campo fotos tal cual (la interfaz la muestra como imagen), con **Nombre** y precio en MXN. Máximo ~6 productos, lista simple, nunca tablas.",
+  "Para dudas de envío usa check_shipping con la ciudad o CP del cliente. Para devoluciones sigue la política. No inventes cupones ni descuentos.",
 ]
 
 [devoluciones]
-dias       = 30
-texto      = "Tienes 30 días desde la entrega para cambio o devolución sin costo."
+dias        = 30
+texto       = "Tienes 30 días desde la entrega para cambio o devolución sin costo."
 condiciones = [
-  "El producto debe estar sin uso y con etiquetas.",
-  "Conserva el empaque original.",
+  "El producto debe estar sin uso y en su empaque original.",
+  "Conserva la etiqueta o el comprobante de compra.",
 ]
 
 [envios]
@@ -46,44 +41,40 @@ condiciones = [
 default_costo_mxn = 149
 default_dias      = "4-6"
 
-# Shipping table. Each row matches by city name (accent/case-insensitive,
-# substring) and/or by CP prefix. First match wins.
 [[envios.tabla]]
-zona       = "Guadalajara (ZMG)"
-ciudades   = ["Guadalajara", "Zapopan", "Tlaquepaque", "Tonalá"]
+zona        = "Guadalajara (ZMG)"
+ciudades    = ["Guadalajara", "Zapopan", "Tlaquepaque", "Tonalá"]
 cp_prefijos = ["44", "45"]
-costo_mxn  = 99
-dias       = "2-3"
+costo_mxn   = 99
+dias        = "2-3"
 
 [[envios.tabla]]
-zona       = "Valle de México"
-ciudades   = ["Ciudad de México", "CDMX", "Estado de México", "Naucalpan", "Ecatepec"]
+zona        = "Valle de México"
+ciudades    = ["Ciudad de México", "CDMX", "Estado de México", "Naucalpan", "Ecatepec"]
 cp_prefijos = ["0", "1", "5"]
-costo_mxn  = 89
-dias       = "1-2"
+costo_mxn   = 89
+dias        = "1-2"
 
 [[envios.tabla]]
-zona       = "Monterrey (ZMM)"
-ciudades   = ["Monterrey", "San Pedro", "Guadalupe", "San Nicolás"]
+zona        = "Monterrey (ZMM)"
+ciudades    = ["Monterrey", "San Pedro", "Guadalupe", "San Nicolás"]
 cp_prefijos = ["64", "66", "67"]
-costo_mxn  = 109
-dias       = "2-3"
+costo_mxn   = 109
+dias        = "2-3"
 
 [[envios.tabla]]
-zona       = "Sureste"
-ciudades   = ["Mérida", "Cancún", "Villahermosa", "Campeche"]
-cp_prefijos = ["97", "77", "86", "24"]
-costo_mxn  = 159
-dias       = "4-5"
+zona        = "Sureste"
+ciudades    = ["Mérida", "Cancún", "Villahermosa", "Campeche", "Oaxaca"]
+cp_prefijos = ["97", "77", "86", "24", "68"]
+costo_mxn   = 159
+dias        = "4-5"
 
 [pagos]
 # create_order_link builds a secure checkout URL from this base.
-# Phase 2 swaps this for a real payment processor (Stripe/Mercado Pago/Conekta).
-# The LLM NEVER captures card data — payment happens only via this link.
-pay_link_base = "https://pago.tienda-vortex.mx/checkout"
+# Phase 2 swaps this for a real processor (Stripe / Mercado Pago / Conekta).
+pay_link_base = "https://pago.casa-alebrije.mx/checkout"
 
 [flujos]
-# Toggle capabilities per deployment. Disabled flows are not exposed to the model.
 search_products   = true
 check_inventory   = true
 check_shipping    = true
@@ -93,5 +84,5 @@ create_order_link = true
 handoff_human     = true
 
 [branding]
-saludo    = "¡Hola! 👋 Soy el asistente de Georges Apple Music Reseller — música de Apple. ¿Qué artista, canción o álbum buscas?"
-despedida = "¡Gracias por tu compra! Aquí estoy para lo que necesites. 🛍️"
+saludo    = "¡Hola! 👋 Soy el asistente de Casa Alebrije — regalos y artesanías mexicanas. ¿Qué buscas: talavera, alebrijes, textiles, velas…?"
+despedida = "¡Gracias por tu compra! Aquí estoy para lo que necesites. 🎁"
