@@ -5,7 +5,7 @@
     "categoria": "Talavera",
     "precio_mxn": 890,
     "descripcion_es": "Juego de 2 tazones de Talavera de Puebla, pintados a mano con motivo floral azul cobalto. Pieza única, uso decorativo o de mesa.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tal-001/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/Cer%C3%A1mica_Talavera6.JPG/960px-Cer%C3%A1mica_Talavera6.JPG"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "TAL-001-AZL", "color": "azul cobalto", "talla": null, "stock": 11, "precio_mxn": null, "foto_url": [] }
@@ -17,7 +17,7 @@
     "categoria": "Talavera",
     "precio_mxn": 650,
     "descripcion_es": "Plato decorativo de 30 cm, técnica Talavera tradicional, ideal para colgar en pared o exhibir en trinchador.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tal-002/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/ColonialTalaveraPlateFmayer.jpg/960px-ColonialTalaveraPlateFmayer.jpg"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "TAL-002-MUL", "color": "multicolor", "talla": null, "stock": 7, "precio_mxn": null, "foto_url": [] },
@@ -30,7 +30,7 @@
     "categoria": "Talavera",
     "precio_mxn": 780,
     "descripcion_es": "Maceta de barro de 20 cm con esmalte Talavera, drenaje inferior, ideal para suculentas o plantas de interior.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tal-003/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Talavera_at_Tlaquepaque_-_TaTa.jpg/960px-Talavera_at_Tlaquepaque_-_TaTa.jpg"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "TAL-003-VRD", "color": "verde/blanco", "talla": null, "stock": 9, "precio_mxn": null, "foto_url": [] },
@@ -43,7 +43,7 @@
     "categoria": "Talavera",
     "precio_mxn": 1190,
     "descripcion_es": "Jarrón de 35 cm de altura, esmaltado a mano con motivos florales multicolor, pieza de exhibición.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tal-004/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Cer%C3%A1mica_Talavera5.JPG/960px-Cer%C3%A1mica_Talavera5.JPG"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "TAL-004-MUL", "color": "multicolor", "talla": null, "stock": 4, "precio_mxn": null, "foto_url": [] }
@@ -55,7 +55,7 @@
     "categoria": "Alebrijes",
     "precio_mxn": 890,
     "descripcion_es": "Alebrije de madera de copal, tallado y pintado a mano por artesanos de Oaxaca. Figura fantástica de colores vibrantes, 18 cm.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/alb-001/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Alebrijes_de_Oaxaca.jpg/960px-Alebrijes_de_Oaxaca.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "ALB-001-MUL", "color": "multicolor", "talla": null, "stock": 13, "precio_mxn": null, "foto_url": [] }
@@ -67,7 +67,7 @@
     "categoria": "Alebrijes",
     "precio_mxn": 1290,
     "descripcion_es": "Alebrije en forma de jaguar, 25 cm, madera de copal pintada con patrones puntillistas tradicionales oaxaqueños.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/alb-002/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Tres_alebrijes.jpg/960px-Tres_alebrijes.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "ALB-002-MUL", "color": "multicolor", "talla": null, "stock": 6, "precio_mxn": null, "foto_url": [] }
@@ -79,7 +79,7 @@
     "categoria": "Alebrijes",
     "precio_mxn": 490,
     "descripcion_es": "Alebrije miniatura de dragón, 10 cm, ideal como detalle de regalo o pieza de colección.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/alb-003/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/2/2c/National_Museum_of_Ethnology%2C_Osaka_-_Alebrije%2C_wood_carvings_from_State_of_Oaxaca%2C_Mexico.jpg/960px-National_Museum_of_Ethnology%2C_Osaka_-_Alebrije%2C_wood_carvings_from_State_of_Oaxaca%2C_Mexico.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "ALB-003-ROJ", "color": "rojo/dorado", "talla": null, "stock": 15, "precio_mxn": null, "foto_url": [] },
@@ -92,7 +92,7 @@
     "categoria": "Alebrijes",
     "precio_mxn": 990,
     "descripcion_es": "Alebrije en forma de búho, madera de copal tallada a mano, 20 cm, pintura acrílica fina.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/alb-004/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Tuc%C3%A1n_alebrije.jpg/960px-Tuc%C3%A1n_alebrije.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "ALB-004-MUL", "color": "multicolor", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] }
@@ -104,7 +104,7 @@
     "categoria": "Textiles",
     "precio_mxn": 700,
     "descripcion_es": "Bolsa de algodón con bordado floral típico de Chiapas, hecho a mano por artesanas locales, forro interior y cierre.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tex-001/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Arte_textil_mexicano%2C_6.jpg/960px-Arte_textil_mexicano%2C_6.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "TEX-001-NAT", "color": "natural/multicolor", "talla": null, "stock": 10, "precio_mxn": null, "foto_url": [] },
@@ -117,7 +117,7 @@
     "categoria": "Textiles",
     "precio_mxn": 1090,
     "descripcion_es": "Rebozo tradicional tejido en telar de cintura, 100% algodón, flecos anudados a mano.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tex-002/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Telar_Rosa-Amarillo_Oaxaca_%28Santo_Tom%C3%A1s_Jalieza%29.jpg/960px-Telar_Rosa-Amarillo_Oaxaca_%28Santo_Tom%C3%A1s_Jalieza%29.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "TEX-002-AZL", "color": "azul rebozo", "talla": null, "stock": 6, "precio_mxn": null, "foto_url": [] },
@@ -130,7 +130,7 @@
     "categoria": "Textiles",
     "precio_mxn": 990,
     "descripcion_es": "Mantel rectangular de algodón con bordado floral oaxaqueño, 150x220 cm, ideal para mesa de 6-8 personas.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tex-003/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Embroidered_coverlet_%28Colcha%29_MET_DP268044.jpg/960px-Embroidered_coverlet_%28Colcha%29_MET_DP268044.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "TEX-003-BLA", "color": "blanco/multicolor", "talla": null, "stock": 5, "precio_mxn": null, "foto_url": [] }
@@ -142,7 +142,7 @@
     "categoria": "Textiles",
     "precio_mxn": 1490,
     "descripcion_es": "Huipil de algodón con bordado a mano de punto de cruz, corte tradicional, talla única.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tex-004/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/HuipilsSanPedroIxcatlan01.JPG/960px-HuipilsSanPedroIxcatlan01.JPG"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "TEX-004-BLA", "color": "blanco/multicolor", "talla": "única", "stock": 2, "precio_mxn": null, "foto_url": [] }
@@ -154,7 +154,7 @@
     "categoria": "Textiles",
     "precio_mxn": 1390,
     "descripcion_es": "Hamaca tejida a mano en algodón, tamaño matrimonial, soporta hasta 150 kg, incluye bolsa de tela para transporte.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tex-005/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/5/55/Embroidered_coverlet_%28Colcha%29_MET_DP268047.jpg/960px-Embroidered_coverlet_%28Colcha%29_MET_DP268047.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "TEX-005-MUL", "color": "multicolor", "talla": "matrimonial", "stock": 4, "precio_mxn": null, "foto_url": [] },
@@ -167,7 +167,7 @@
     "categoria": "Textiles",
     "precio_mxn": 1690,
     "descripcion_es": "Tapete de lana tejido en telar de pedal, diseño geométrico zapoteco, 90x150 cm.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/tex-006/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/HuipilsSanPedroIxcatlan02.JPG/960px-HuipilsSanPedroIxcatlan02.JPG"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "TEX-006-GRS", "color": "gris/negro", "talla": null, "stock": 3, "precio_mxn": null, "foto_url": [] }
@@ -179,7 +179,7 @@
     "categoria": "Velas",
     "precio_mxn": 320,
     "descripcion_es": "Vela de cera de abeja 100% natural, hecha a mano, aroma suave a miel, 15 cm de altura, tiempo de quemado ~40 h.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/vel-001/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Lit_white_candle.jpg/960px-Lit_white_candle.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "VEL-001-NAT", "color": "natural", "talla": null, "stock": 22, "precio_mxn": null, "foto_url": [] }
@@ -191,7 +191,7 @@
     "categoria": "Velas",
     "precio_mxn": 490,
     "descripcion_es": "Set de 3 velas de soya con aromas de copal, flor de azahar y vainilla, en frascos de vidrio reutilizables.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/vel-002/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/RamirezLopezCandle04.JPG/960px-RamirezLopezCandle04.JPG"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "VEL-002-SET", "color": "surtido", "talla": null, "stock": 16, "precio_mxn": null, "foto_url": [] }
@@ -203,7 +203,7 @@
     "categoria": "Velas",
     "precio_mxn": 260,
     "descripcion_es": "Vela decorativa con relieve de calavera de azúcar pintada a mano, aroma a cempasúchil.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/vel-003/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Candle_MET_67148.jpg/960px-Candle_MET_67148.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "VEL-003-NAR", "color": "naranja/blanco", "talla": null, "stock": 9, "precio_mxn": null, "foto_url": [] }
@@ -215,7 +215,7 @@
     "categoria": "Velas",
     "precio_mxn": 390,
     "descripcion_es": "Portavelas de vidrio soplado a mano en taller mexicano, acabado con burbujas de aire características, 12 cm.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/vel-004/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/d/da/Red_glass_tiled_jar_smile_%28454687511%29.jpg"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "VEL-004-AMB", "color": "ámbar", "talla": null, "stock": 7, "precio_mxn": null, "foto_url": [] },
@@ -228,7 +228,7 @@
     "categoria": "Joyería",
     "precio_mxn": 590,
     "descripcion_es": "Aretes de plata .925 hechos a mano en Taxco, Guerrero, diseño filigrana tradicional.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/joy-001/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Filigree_silver_earrings.jpg/960px-Filigree_silver_earrings.jpg"],
     "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
       { "sku": "JOY-001-PLA", "color": "plata", "talla": null, "stock": 14, "precio_mxn": null, "foto_url": [] }
@@ -240,7 +240,7 @@
     "categoria": "Joyería",
     "precio_mxn": 990,
     "descripcion_es": "Collar de plata .925 con piedra de turquesa natural engarzada a mano, cadena de 45 cm.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/joy-002/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Silver_filigree_and_turqoise_earrings_by_Jos%C3%A9_Jorge_Garc%C3%ADa_Garc%C3%ADa.jpg/960px-Silver_filigree_and_turqoise_earrings_by_Jos%C3%A9_Jorge_Garc%C3%ADa_Garc%C3%ADa.jpg"],
     "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
       { "sku": "JOY-002-TUR", "color": "plata/turquesa", "talla": null, "stock": 8, "precio_mxn": null, "foto_url": [] }
@@ -252,7 +252,7 @@
     "categoria": "Joyería",
     "precio_mxn": 690,
     "descripcion_es": "Pulsera de plata .925 con acabado martillado a mano, ajustable, hecha por plateros de Taxco.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/joy-003/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Silver_Mexican_Bracelet.jpg/960px-Silver_Mexican_Bracelet.jpg"],
     "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
       { "sku": "JOY-003-PLA", "color": "plata", "talla": "ajustable", "stock": 11, "precio_mxn": null, "foto_url": [] }
@@ -264,7 +264,7 @@
     "categoria": "Joyería",
     "precio_mxn": 590,
     "descripcion_es": "Anillo de plata .925 con piedra de obsidiana negra pulida, tallada en México.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/joy-004/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Silver_filigree_and_leaf_earrings_with_pearls_by_Delfino_Garc%C3%ADa_Esperanza.jpg/960px-Silver_filigree_and_leaf_earrings_with_pearls_by_Delfino_Garc%C3%ADa_Esperanza.jpg"],
     "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
       { "sku": "JOY-004-P6", "color": "plata/negro", "talla": "6", "stock": 5, "precio_mxn": null, "foto_url": [] },
@@ -278,7 +278,7 @@
     "categoria": "Joyería",
     "precio_mxn": 450,
     "descripcion_es": "Aretes con técnica de filigrana, baño de oro laminado, diseño oaxaqueño tradicional.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/joy-005/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Silver_filigree_earrings_with_pearls_by_Delfino_Garc%C3%ADa_Esperanza.jpg/960px-Silver_filigree_earrings_with_pearls_by_Delfino_Garc%C3%ADa_Esperanza.jpg"],
     "politica_devolucion": "15 días para cambio o devolución, solo con empaque sellado por higiene.",
     "variantes": [
       { "sku": "JOY-005-ORO", "color": "dorado", "talla": null, "stock": 9, "precio_mxn": null, "foto_url": [] }
@@ -290,7 +290,7 @@
     "categoria": "Barro",
     "precio_mxn": 780,
     "descripcion_es": "Jarrón de barro negro pulido a mano, técnica ancestral de San Bartolo Coyotepec, 25 cm de altura.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/bar-001/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Barro_Negro_Design_Oaxaca.png/960px-Barro_Negro_Design_Oaxaca.png"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "BAR-001-NGR", "color": "negro", "talla": null, "stock": 6, "precio_mxn": null, "foto_url": [] }
@@ -302,7 +302,7 @@
     "categoria": "Barro",
     "precio_mxn": 590,
     "descripcion_es": "Set de 4 tazas de barro negro de Oaxaca, pulidas a mano, aptas para bebidas calientes.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/bar-002/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Elaboraci%C3%B3n_del_barro_negro03_inakiherrasti.JPG/960px-Elaboraci%C3%B3n_del_barro_negro03_inakiherrasti.JPG"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "BAR-002-NGR", "color": "negro", "talla": null, "stock": 10, "precio_mxn": null, "foto_url": [] }
@@ -314,7 +314,7 @@
     "categoria": "Barro",
     "precio_mxn": 420,
     "descripcion_es": "Figura de venado en barro negro pulido, pieza decorativa de mesa, 12 cm.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/bar-003/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Barro_Negro_Pottery_Fire_Pit.png/960px-Barro_Negro_Pottery_Fire_Pit.png"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "BAR-003-NGR", "color": "negro", "talla": null, "stock": 0, "precio_mxn": null, "foto_url": [] }
@@ -326,7 +326,7 @@
     "categoria": "Decoración",
     "precio_mxn": 950,
     "descripcion_es": "Catrina de cerámica de 35 cm, pintada a mano con detalles florales, pieza de colección.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/dec-001/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Catrina_%28Museo_de_Arte_Popular_de_M%C3%A9xico%29_01.jpg/960px-Catrina_%28Museo_de_Arte_Popular_de_M%C3%A9xico%29_01.jpg"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "DEC-001-MUL", "color": "multicolor", "talla": null, "stock": 5, "precio_mxn": null, "foto_url": [] }
@@ -338,7 +338,7 @@
     "categoria": "Decoración",
     "precio_mxn": 190,
     "descripcion_es": "Set de 10 banderines de papel picado tradicional, 3 metros de largo, diseño floral y calaveras.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/dec-002/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/3/3f/Papel_Picado_Taller_2MAP.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "DEC-002-MUL", "color": "multicolor", "talla": null, "stock": 30, "precio_mxn": null, "foto_url": [] }
@@ -350,7 +350,7 @@
     "categoria": "Decoración",
     "precio_mxn": 690,
     "descripcion_es": "Espejo redondo de 30 cm con marco de hojalata repujada a mano, motivo sol.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/dec-003/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/a/a4/Mexican_Handicrafts.jpg"],
     "politica_devolucion": "10 días para cambio o devolución. Requiere embalaje original por ser artículo frágil.",
     "variantes": [
       { "sku": "DEC-003-PLA", "color": "plata envejecida", "talla": null, "stock": 4, "precio_mxn": null, "foto_url": [] }
@@ -362,7 +362,7 @@
     "categoria": "Decoración",
     "precio_mxn": 350,
     "descripcion_es": "Cruz decorativa de hojalata repujada con incrustaciones de vidrio de colores, 25 cm.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/dec-004/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Artesanal_Mexican_Market.jpg/960px-Artesanal_Mexican_Market.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "DEC-004-MUL", "color": "multicolor", "talla": null, "stock": 8, "precio_mxn": null, "foto_url": [] }
@@ -374,7 +374,7 @@
     "categoria": "Decoración",
     "precio_mxn": 290,
     "descripcion_es": "Corazón milagro tradicional de hojalata pintada, ideal como detalle de regalo o adorno de pared.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/dec-005/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Catrinas_2011.jpg/960px-Catrinas_2011.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "DEC-005-ROJ", "color": "rojo/dorado", "talla": null, "stock": 12, "precio_mxn": null, "foto_url": [] }
@@ -386,7 +386,7 @@
     "categoria": "Decoración",
     "precio_mxn": 590,
     "descripcion_es": "Nicho de madera tallada y pintada a mano, estilo mexicano tradicional, para veladoras o figuras pequeñas.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/dec-006/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Catrina_y_Catr%C3%ADn_%28Museo_de_Arte_Popular_de_M%C3%A9xico%29_03.JPG/960px-Catrina_y_Catr%C3%ADn_%28Museo_de_Arte_Popular_de_M%C3%A9xico%29_03.JPG"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "DEC-006-AZL", "color": "azul/dorado", "talla": null, "stock": 3, "precio_mxn": null, "foto_url": [] }
@@ -398,7 +398,7 @@
     "categoria": "Regalos",
     "precio_mxn": 690,
     "descripcion_es": "Caja de regalo con mini alebrije, vela artesanal y dulces típicos mexicanos, empaque decorado.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/reg-001/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Caja_de_regalos_-_Festival_de_Luces%2C_Chile_2023_-_%27Lantern_Festival%27_-_A741967.jpg/960px-Caja_de_regalos_-_Festival_de_Luces%2C_Chile_2023_-_%27Lantern_Festival%27_-_A741967.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "REG-001-STD", "color": "estándar", "talla": null, "stock": 18, "precio_mxn": null, "foto_url": [] }
@@ -410,7 +410,7 @@
     "categoria": "Regalos",
     "precio_mxn": 150,
     "descripcion_es": "Set de tarjeta postal ilustrada a mano e imán de alebrije en miniatura, detalle de regalo pequeño.",
-    "foto_url": ["https://cdn.casa-alebrije.mx/reg-002/front.jpg"],
+    "foto_url": ["https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/David_Everett_Strickler_2016_%28Unsplash%29.jpg/960px-David_Everett_Strickler_2016_%28Unsplash%29.jpg"],
     "politica_devolucion": null,
     "variantes": [
       { "sku": "REG-002-MUL", "color": "multicolor", "talla": null, "stock": 25, "precio_mxn": null, "foto_url": [] }
