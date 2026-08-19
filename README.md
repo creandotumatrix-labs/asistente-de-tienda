@@ -16,6 +16,16 @@ prevented in **code**, not just in the prompt.
 
 ---
 
+## Demo
+
+![Demo en vivo — Asistente de Tienda](asistente-de-tienda-demo.gif)
+
+- 🔴 **Demo en vivo:** [asistente-de-tienda-production.up.railway.app](https://asistente-de-tienda-production.up.railway.app/)
+- 📄 **Detalles:** [asistente-de-tienda.vercel.app](https://asistente-de-tienda.vercel.app/)
+- ▶️ **Video:** [youtu.be/Idg40dF3FZE](https://youtu.be/Idg40dF3FZE)
+
+---
+
 ## Quickstart
 
 ```bash
