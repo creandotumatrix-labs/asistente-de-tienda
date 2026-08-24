@@ -1,6 +1,6 @@
-# Asistente de Tienda — WhatsApp Retail Support + Sales Agent (es-MX)
+# Asistente de Tienda — CLI Order Assistant Simulator (es-MX)
 
-PRD 3 reference implementation. A grounded WhatsApp commerce agent that answers
+PRD 3 reference implementation. A grounded CLI order assistant simulator that answers
 product questions from a **real catalog**, checks inventory and shipping, looks
 up order status, initiates returns within policy, and hands off a secure payment
 link — **without hallucinating specs, stock, prices, or order data**.
@@ -12,7 +12,7 @@ prevented in **code**, not just in the prompt.
 
 > Self-contained Rust crate. It stands in for the shared runtime referenced in
 > the PRD: catalog/orders, the seven tools, the es-MX persona + guardrails, the
-> Anthropic tool-use loop, and a CLI WhatsApp simulator for the demo.
+> Anthropic tool-use loop, and a CLI simulator for the demo.
 
 ---
 
@@ -20,7 +20,7 @@ prevented in **code**, not just in the prompt.
 
 ![Demo en vivo — Asistente de Tienda](asistente-de-tienda-demo.gif)
 
-- 🔴 **Demo en vivo:** [asistente-de-tienda-production.up.railway.app](https://asistente-de-tienda-production.up.railway.app/)
+- 🔴 **Live demo (Railway):** [asistente-de-tienda-production.up.railway.app](https://asistente-de-tienda-production.up.railway.app/)
 - 📄 **Detalles:** [asistente-de-tienda.vercel.app](https://asistente-de-tienda.vercel.app/)
 - ▶️ **Video:** [youtu.be/Idg40dF3FZE](https://youtu.be/Idg40dF3FZE)
 
@@ -122,7 +122,7 @@ tienda [--config PATH] [--catalog PATH] [--orders PATH]
 
 ```
 src/
-  main.rs            CLI WhatsApp simulator (REPL + tool-trace)
+  main.rs            CLI simulator (REPL + tool-trace)
   agent.rs           Anthropic tool-use loop
   anthropic.rs       Messages API client (ureq/rustls)
   prompt.rs          es-MX persona + guardrails (config-injected)
