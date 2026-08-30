@@ -1,18 +1,14 @@
-# Asistente de Tienda — CLI Order Assistant Simulator (es-MX)
+# 🛍️ Asistente de Tienda — Simulador CLI de Ventas y Soporte (es-MX)
 
-PRD 3 reference implementation. A grounded CLI order assistant simulator that answers
-product questions from a **real catalog**, checks inventory and shipping, looks
-up order status, initiates returns within policy, and hands off a secure payment
-link — **without hallucinating specs, stock, prices, or order data**.
+Implementación de referencia del PRD 3. Un simulador de línea de comandos que responde preguntas de producto desde un **catálogo real**, revisa inventario y envío, consulta el estado de un pedido, inicia devoluciones dentro de política, y entrega un link de pago seguro — **sin alucinar specs, stock, precios ni datos de pedidos**.
 
-The "wow" is *trustworthy grounding*: ask for something not in the catalog and it
-says so; ask for something real and it gives specs, photos, shipping, and a pay
-link; ask "where's my order?" and it does a live lookup. Hallucination is
-prevented in **code**, not just in the prompt.
+Lo importante es el *grounding confiable*: si preguntas por algo que no está en el catálogo, lo dice; si preguntas por algo real, da specs, fotos, costo de envío y un link de pago; si preguntas "¿dónde está mi pedido?", hace una consulta en vivo. La alucinación se previene en **código**, no solo en el prompt.
 
-> Self-contained Rust crate. It stands in for the shared runtime referenced in
-> the PRD: catalog/orders, the seven tools, the es-MX persona + guardrails, the
-> Anthropic tool-use loop, and a CLI simulator for the demo.
+*Reference implementation for PRD 3. A grounded CLI order assistant simulator that answers product questions from a real catalog, checks inventory and shipping, looks up order status, initiates returns within policy, and hands off a secure payment link — without hallucinating specs, stock, prices, or order data.*
+
+> Crate de Rust autocontenido. Sustituye al runtime compartido referenciado en el PRD: catálogo/pedidos, las siete herramientas, la persona es-MX + guardrails, el loop de tool-use de Anthropic, y un simulador CLI para la demo.
+>
+> *Self-contained Rust crate standing in for the shared runtime referenced in the PRD.*
 
 ---
 
@@ -20,20 +16,19 @@ prevented in **code**, not just in the prompt.
 
 ![Demo en vivo — Asistente de Tienda](asistente-de-tienda-demo.gif)
 
-- 🔴 **Live demo (Railway):** [asistente-de-tienda-production.up.railway.app](https://asistente-de-tienda-production.up.railway.app/)
+- 🔴 **Demo en vivo (Railway):** [asistente-de-tienda-production.up.railway.app](https://asistente-de-tienda-production.up.railway.app/)
 - 📄 **Detalles:** [asistente-de-tienda.vercel.app](https://asistente-de-tienda.vercel.app/)
-- ▶️ **Video:** [youtu.be/Idg40dF3FZE](https://youtu.be/Idg40dF3FZE)
 
 ---
 
 ## Quickstart
 
 ```bash
-cp .env.example .env        # add your ANTHROPIC_API_KEY
+cp .env.example .env        # agrega tu ANTHROPIC_API_KEY
 cargo run --bin tienda -- --debug
 ```
 
-`--debug` prints the live tool-call trace (the PRD's annotated flow). Then:
+`--debug` imprime el trace de llamadas a herramientas en vivo (el flujo anotado del PRD). Luego:
 
 ```
 cliente ▸ tienen la mochila Vortex en negro?
@@ -42,68 +37,58 @@ cliente ▸ tienen la mochila Vortex en negro?
 🛍 Asistente de Tienda ▸ Sí 🎒 La Mochila Vortex en negro está disponible — $1,290 ...
 ```
 
-No API key yet? The whole data + guardrail layer is still verifiable offline:
+¿Sin API key todavía? Toda la capa de datos + guardrails es verificable offline:
 
 ```bash
-make verify        # python3 oracle over the seed data — 19 invariants, no network
-make test          # cargo test — same invariants in Rust
+make verify        # oráculo python3 sobre los datos semilla — 19 invariantes, sin red
+make test           # cargo test — mismos invariantes en Rust
 ```
+
+*No API key yet? The whole data + guardrail layer is still verifiable offline via `make verify` / `make test`.*
 
 ---
 
-## The demo (the wow)
+## La demo (el momento wow)
 
 ```bash
 make demo
 ```
 
-1. **Out-of-catalog** → `search_products` returns `total:0` → agent says it's not
-   available (proves no fabrication).
-2. **Real product** → specs, price, photo URLs, `check_shipping` quote, and a
-   `create_order_link` secure pay link.
-3. **Post-sale** → `get_order_status("10482")` → live "en camino", guía TRACK-99213.
+1. **Fuera de catálogo** → `search_products` devuelve `total:0` → el agente dice que no está disponible (prueba que no fabrica datos).
+2. **Producto real** → specs, precio, fotos, cotización de `check_shipping`, y un link de pago seguro de `create_order_link`.
+3. **Post-venta** → `get_order_status("10482")` → "en camino" en vivo, guía TRACK-99213.
 
-Try also: ask for the Vortex in **gris** (out of stock) — it refuses to sell and
-offers the in-stock colors instead.
+También prueba: pide la Vortex en **gris** (sin stock) — se niega a venderla y ofrece los colores disponibles.
 
 ---
 
-## Tools
+## Herramientas / Tools
 
-| Tool | Returns | Guardrail (enforced in code) |
-|------|---------|------------------------------|
-| `search_products` | matching catalog rows | only real rows; `total:0` ⇒ "no existe" |
-| `check_inventory` | stock for a SKU | variant- or product-level truth |
-| `check_shipping` | cost + ETA | from config table; national fallback |
-| `get_order_status` | order state + guía | unknown id ⇒ `encontrado:false` |
-| `start_return` | RMA or rejection | **only** if delivered & within N days |
-| `create_order_link` | secure pay link | **refuses** OOS / oversell; offers alternatives |
-| `handoff_human` | ticket + summary | escalation path for edges |
+| Tool | Retorna | Guardrail (en código) |
+|------|---------|------------------------|
+| `search_products` | filas de catálogo que hacen match | solo filas reales; `total:0` ⇒ "no existe" |
+| `check_inventory` | stock de un SKU | verdad a nivel variante o producto |
+| `check_shipping` | costo + ETA | de tabla de config; fallback nacional |
+| `get_order_status` | estado del pedido + guía | id desconocido ⇒ `encontrado:false` |
+| `start_return` | RMA o rechazo | **solo** si fue entregado y dentro de N días |
+| `create_order_link` | link de pago seguro | **se niega** si no hay stock; ofrece alternativas |
+| `handoff_human` | ticket + resumen | ruta de escalamiento para casos límite |
 
-Two layers protect grounding: the **prompt** (`src/prompt.rs`) states the rules,
-and the **tool layer** (`src/tools/`) is the backstop — e.g. `create_order_link`
-returns `error:"sin_stock"` with real alternatives instead of a pay link, so the
-model physically cannot sell what isn't there. The LLM never sees or handles card
-data; payment happens only through the returned link.
+Dos capas protegen el grounding: el **prompt** (`src/prompt.rs`) declara las reglas, y la **capa de herramientas** (`src/tools/`) es el respaldo — p.ej. `create_order_link` devuelve `error:"sin_stock"` con alternativas reales en vez de un link de pago, así el modelo físicamente no puede vender lo que no existe. El LLM nunca ve ni maneja datos de tarjeta; el pago ocurre solo a través del link retornado.
 
 ---
 
-## White-label config surface
+## Superficie de configuración white-label
 
-Swap `config/store.toml` + `data/*.json` → new store in minutes.
+Cambia `config/store.toml` + `data/*.json` → nueva tienda en minutos.
 
-- `config/store.toml` — store identity, persona/tono, return policy + window,
-  shipping table, payment link base, **per-flow toggles** (`[flujos]`), branding,
-  model + max_tokens.
-- `data/products.json` — catalog: variant-level SKUs, stock, prices, colors,
-  sizes, photos, per-product return policy.
-- `data/orders.json` — sample orders driving the support flow.
+- `config/store.toml` — identidad de la tienda, persona/tono, política y ventana de devoluciones, tabla de envíos, base del link de pago, **toggles por flujo** (`[flujos]`), branding, modelo + max_tokens.
+- `data/products.json` — catálogo: SKUs a nivel variante, stock, precios, colores, tallas, fotos, política de devolución por producto.
+- `data/orders.json` — pedidos de ejemplo que alimentan el flujo de soporte.
 
-Disabled flows in `[flujos]` are never advertised to the model **and** are
-rejected at dispatch (defense in depth).
+Los flujos desactivados en `[flujos]` nunca se anuncian al modelo **y** se rechazan en el dispatch (defensa en profundidad).
 
-Model precedence: `--model` › `ANTHROPIC_MODEL` › `[agente].modelo` (default
-`claude-sonnet-4-6`).
+Precedencia de modelo: `--model` › `ANTHROPIC_MODEL` › `[agente].modelo` (default `claude-sonnet-4-6`).
 
 ---
 
@@ -114,11 +99,11 @@ tienda [--config PATH] [--catalog PATH] [--orders PATH]
        [--model ID] [--once "msg"] [--debug] [--no-banner]
 ```
 
-`--once` runs a single message non-interactively (used by `make demo`).
+`--once` corre un solo mensaje no interactivo (usado por `make demo`).
 
 ---
 
-## Layout
+## Estructura / Layout
 
 ```
 src/
@@ -136,22 +121,53 @@ scripts/verify_logic.py  executable logic oracle (no toolchain needed)
 
 ---
 
-## Verification
+## Verificación / Verification
 
-- `cargo test` — guardrail suite over the real seed data (no network, no LLM).
-- `make verify` — independent Python oracle re-implementing the same logic with
-  a separate date implementation; asserts the same 19 invariants. Useful in CI
-  or anywhere the Rust toolchain isn't present.
+- `cargo test` — suite de guardrails sobre los datos semilla reales (sin red, sin LLM).
+- `make verify` — oráculo Python independiente que reimplementa la misma lógica con una implementación de fechas separada; verifica los mismos 19 invariantes. Útil en CI o donde no esté el toolchain de Rust.
 
-The agent loop (`anthropic.rs`/`agent.rs`) is exercised live against the API; the
-deterministic tool + grounding layer is what the tests pin down.
+El loop del agente (`anthropic.rs`/`agent.rs`) se ejerce en vivo contra la API; la capa determinística de herramientas + grounding es lo que fijan los tests.
 
 ---
 
-## Out of scope (phase 2)
+## Fuera de alcance (fase 2) / Out of scope (phase 2)
 
-Real WhatsApp Business API transport, Shopify/WooCommerce + payment processor
-(Stripe/Mercado Pago/Conekta) behind `create_order_link`, proactive
-abandoned-cart templates, loyalty, Instagram channel, and persistent RMA/handoff
-ticketing. All seven tools are read-mostly over seed JSON today; each maps 1:1 to
-a phase-2 integration point.
+Transporte real por WhatsApp Business API, integración con Shopify/WooCommerce + procesador de pagos (Stripe/Mercado Pago/Conekta) detrás de `create_order_link`, templates proactivos de carrito abandonado, lealtad, canal de Instagram, y ticketing persistente de RMA/handoff. Las siete herramientas son read-mostly sobre JSON semilla hoy; cada una mapea 1:1 a un punto de integración de fase 2.
+
+*WhatsApp Business API transport, Shopify/WooCommerce + payment processor integration, abandoned-cart templates, loyalty, Instagram, and persistent RMA/handoff ticketing are all phase 2 — not built yet.*
+
+---
+
+## Preguntas frecuentes / FAQ
+
+**¿Ya funciona por WhatsApp?** — No todavía. Hoy es un simulador CLI que prueba la capa de grounding y las 7 herramientas; el transporte de WhatsApp Business API es fase 2 (ver arriba). El demo en vivo corre la misma lógica vía web, no WhatsApp.
+*Not yet — today this is a CLI simulator proving the grounding layer and the 7 tools; WhatsApp transport is phase 2.*
+
+**¿Cuánto cuesta implementarlo para mi tienda?** — Depende del alcance (catálogo, integraciones de pago/envío, canal). Escríbenos vía [creandotumatrix.com](https://creandotumatrix.com) para una cotización.
+*Depends on scope — contact us via creandotumatrix.com for a quote.*
+
+**¿Puede vender algo que no está en el catálogo o inventar un precio?** — No. `search_products` solo devuelve filas reales; `total:0` es una respuesta válida y el agente la usa. El guardrail está en el código de las herramientas, no solo en el prompt.
+*No — the guardrail against fabricated products/prices is enforced in the tool layer, not just the prompt.*
+
+**¿Ve el agente los datos de mi tarjeta?** — No. El LLM nunca maneja datos de pago; solo entrega un link seguro generado por `create_order_link`.
+*No — the LLM never handles payment data, it only hands off a secure link.*
+
+---
+
+## Asistentes CTM — la familia / the family
+
+Los tres agentes de WhatsApp de **Creando Tu Matrix**, todos sobre el mismo patrón: runtime de tool-use con Claude, guardrails determinísticos en código, y una superficie de configuración white-label por negocio.
+
+| Agente | Qué hace | Repo |
+|---|---|---|
+| 🌮 **asistente-pedidos** | Pedidos y reservaciones por WhatsApp para restaurantes | [creandotumatrix-labs/asistente-pedidos](https://github.com/creandotumatrix-labs/asistente-pedidos) |
+| 🛍️ **asistente-de-tienda** | Soporte y ventas de retail/ecommerce, sobre catálogo real | [creandotumatrix-labs/asistente-de-tienda](https://github.com/creandotumatrix-labs/asistente-de-tienda) |
+| 📈 **asistente-comercial** | Calificación y agendado de leads, agnóstico al vertical | [creandotumatrix-labs/asistente-comercial](https://github.com/creandotumatrix-labs/asistente-comercial) |
+
+*The three Creando Tu Matrix WhatsApp agents, all on the same pattern: a Claude tool-use runtime, deterministic guardrails in code, and a per-business white-label config surface.*
+
+🌐 Más sobre CTM: [creandotumatrix.com](https://creandotumatrix.com) · Org: [creandotumatrix-labs](https://github.com/creandotumatrix-labs)
+
+---
+
+Construido por [Marcus Patman](https://github.com/marcuspat) — Principal Agentic Engineer · Parte de **Asistentes CTM** en [creandotumatrix-labs](https://github.com/creandotumatrix-labs)
