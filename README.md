@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/banner.svg" alt="asistente-de-tienda — animated banner" width="100%"></p>
+
 # 🛍️ Asistente de Tienda — Simulador CLI de Ventas y Soporte (es-MX)
 
 Implementación de referencia del PRD 3. Un simulador de línea de comandos que responde preguntas de producto desde un **catálogo real**, revisa inventario y envío, consulta el estado de un pedido, inicia devoluciones dentro de política, y entrega un link de pago seguro — **sin alucinar specs, stock, precios ni datos de pedidos**.
