@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://creandotumatrix-labs.github.io/asistente-de-tienda/sitemap.xml
