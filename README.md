@@ -42,7 +42,7 @@ cliente ▸ tienen la mochila Vortex en negro?
 ¿Sin API key todavía? Toda la capa de datos + guardrails es verificable offline:
 
 ```bash
-make verify        # oráculo python3 sobre los datos semilla — 19 invariantes, sin red
+make verify        # oráculo python3 sobre los datos semilla — 22 invariantes, sin red
 make test           # cargo test — mismos invariantes en Rust
 ```
 
@@ -126,7 +126,7 @@ scripts/verify_logic.py  executable logic oracle (no toolchain needed)
 ## Verificación / Verification
 
 - `cargo test` — suite de guardrails sobre los datos semilla reales (sin red, sin LLM).
-- `make verify` — oráculo Python independiente que reimplementa la misma lógica con una implementación de fechas separada; verifica los mismos 19 invariantes. Útil en CI o donde no esté el toolchain de Rust.
+- `make verify` — oráculo Python independiente que reimplementa la misma lógica con una implementación de fechas separada; verifica los mismos 22 invariantes. Útil en CI o donde no esté el toolchain de Rust.
 
 El loop del agente (`anthropic.rs`/`agent.rs`) se ejerce en vivo contra la API; la capa determinística de herramientas + grounding es lo que fijan los tests.
 
